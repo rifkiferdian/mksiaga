@@ -1,0 +1,21 @@
+{{define "base"}}
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f97316">
+  <title>{{.Title}} · {{.AppName}}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+  {{if and (not .IsAuthPage) (not .IsDashboard)}}{{template "navbar" .}}{{end}}
+  {{if or .IsAuthPage .IsDashboard}}
+    <main>{{template "content" .}}</main>
+  {{else}}
+    <main class="mx-auto max-w-5xl px-6 py-16">{{template "content" .}}</main>
+  {{end}}
+</body>
+</html>
+{{end}}

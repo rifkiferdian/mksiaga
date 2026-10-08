@@ -1,0 +1,12 @@
+{
+  "name": "mksiaga",
+  "private": true,
+  "scripts": {
+    "dev:css": "tailwindcss -i ./web/assets/css/input.css -o ./web/static/css/app.css --watch",
+    "build:css": "tailwindcss -i ./web/assets/css/input.css -o ./web/static/css/app.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.0",
+    "tailwindcss": "4.3.0"
+  }
+}

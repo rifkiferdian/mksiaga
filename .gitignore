@@ -1,0 +1,37 @@
+# Konfigurasi lokal dan rahasia.
+.env
+.env.*
+!.env.example
+# Dependency frontend; lockfile tetap masuk Git.
+/node_modules/
+# Hasil build Go dan file sementara Air; .air.toml tetap masuk Git.
+/bin/
+/tmp/
+*.exe
+*.exe~
+*.test
+*.test.exe
+
+# Coverage dan profiling Go.
+/coverage/
+/coverage.out
+/coverage.html
+*.prof
+
+# CSS hasil build Tailwind.
+/web/static/css/app.css
+/web/static/css/app.css.map
+
+# File unggahan runtime.
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+# Log aplikasi dan tooling.
+*.log
+
+# File lokal editor dan sistem operasi.
+/.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini

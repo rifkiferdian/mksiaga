@@ -1,0 +1,27 @@
+{{define "navbar"}}
+<header class="border-b border-orange-100 bg-white">
+  <nav aria-label="Navigasi utama" class="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+    <a href="/" class="flex items-center gap-3 text-xl font-bold tracking-tight">
+      <span class="grid size-9 place-items-center rounded-xl bg-orange-500 text-white shadow-sm shadow-orange-200" aria-hidden="true">
+        <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 5 6v5c0 4.6 2.9 8.8 7 10 4.1-1.2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      </span>
+      {{.AppName}}
+    </a>
+    <div class="flex items-center gap-5">
+      <a href="/" aria-current="page" class="hidden text-sm font-medium text-slate-600 hover:text-orange-600 sm:block">Beranda</a>
+      {{if .Authenticated}}
+      <div class="hidden text-right sm:block">
+        <p class="text-sm font-semibold text-slate-800">{{.UserName}}</p>
+        <p class="text-xs text-slate-500">{{.StoreName}} · {{.RoleName}}</p>
+      </div>
+      <form action="/logout" method="post">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <button type="submit" class="rounded-xl border border-orange-200 bg-white px-4 py-2.5 text-sm font-semibold text-orange-700 transition hover:bg-orange-50 focus:outline-none focus:ring-4 focus:ring-orange-100">Keluar</button>
+      </form>
+      {{else}}
+      <a href="/login" class="rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-200">Masuk</a>
+      {{end}}
+    </div>
+  </nav>
+</header>
+{{end}}
