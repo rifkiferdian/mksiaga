@@ -15,6 +15,7 @@ import (
 	"mksiaga/internal/config"
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/navigation"
+	"mksiaga/internal/profile"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
 )
@@ -63,7 +64,11 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
+		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
+		authorized.GET("/profile", profileHandler.Index)
+		authorized.POST("/profile/name", profileHandler.UpdateName)
+		authorized.POST("/profile/password", profileHandler.UpdatePassword)
 		settings := authorized.Group("/settings")
 		settings.GET("/users", auth.RequirePermission(db, "users.view"), userHandler.Index)
 		settings.POST("/users", auth.RequirePermission(db, "users.create"), userHandler.Create)

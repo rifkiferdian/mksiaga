@@ -172,6 +172,12 @@ func ClearLogin(c *gin.Context, secure bool) error {
 	return session.Save()
 }
 
+func UpdateSessionName(c *gin.Context, name string) error {
+	session := sessions.Default(c)
+	session.Set(sessionUserName, name)
+	return session.Save()
+}
+
 func cookieOptions(maxAge int, secure bool) sessions.Options {
 	return sessions.Options{
 		Path:     "/",

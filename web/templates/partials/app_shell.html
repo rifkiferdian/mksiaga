@@ -46,23 +46,24 @@
     <p class="truncate text-xs text-slate-400">{{.Section}} <span class="mx-2">/</span> <strong class="font-semibold text-slate-700">{{.Title}}</strong></p>
   </div>
   <div class="flex shrink-0 items-center gap-1 sm:gap-2">
-    <button type="button" data-demo-action="Pusat bantuan akan tersedia pada tahap berikutnya." class="grid size-10 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Bantuan">
-      <svg viewBox="0 0 24 24" class="size-[19px]" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.7c-1.1 1.1-1.9 1.4-1.9 3"/><path d="M12 17h.01" stroke-width="3"/></svg>
+    <button type="button" data-demo-action="Pusat bantuan akan tersedia pada tahap berikutnya." class="grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Bantuan">
+      <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.7c-1.1 1.1-1.9 1.4-1.9 3"/><path d="M12 17h.01" stroke-width="3"/></svg>
     </button>
-    <button type="button" data-demo-action="Belum ada notifikasi baru." class="relative grid size-10 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Notifikasi">
-      <svg viewBox="0 0 24 24" class="size-[19px]" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+    <button type="button" data-demo-action="Belum ada notifikasi baru." class="relative grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Notifikasi">
+      <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
       <span class="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-orange-500"></span>
     </button>
     <span class="mx-1 h-8 w-px bg-slate-200 sm:mx-2" aria-hidden="true"></span>
     <div class="relative">
       <button type="button" data-profile-menu-button aria-expanded="false" class="flex items-center gap-2 rounded-xl p-1.5 text-left transition hover:bg-slate-50 sm:pr-3">
-        <span class="grid size-9 place-items-center rounded-full bg-orange-100 text-[11px] font-bold text-orange-700">{{.UserInitials}}</span>
-        <span class="hidden max-w-40 sm:block"><strong class="block truncate text-xs text-slate-800">{{.UserName}}</strong><small class="mt-0.5 block truncate text-[9px] capitalize text-slate-400">{{.RoleName}}</small></span>
+        <span class="grid size-10 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">{{.UserInitials}}</span>
+        <span class="hidden max-w-44 sm:block"><strong class="block truncate text-sm text-slate-800">{{.UserName}}</strong><small class="mt-0.5 block truncate text-[11px] capitalize text-slate-400">{{.RoleName}}</small></span>
       </button>
       <div data-profile-menu class="absolute right-0 top-[calc(100%+0.5rem)] hidden w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
         <div class="border-b border-slate-100 px-3 py-3 sm:hidden"><strong class="block truncate text-xs text-slate-800">{{.UserName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{.StoreName}} · {{.RoleName}}</small></div>
         <div class="hidden border-b border-slate-100 px-3 py-3 sm:block"><small class="block text-[9px] uppercase tracking-wider text-slate-400">Store aktif</small><strong class="mt-1 block truncate text-xs text-slate-700">{{.StoreName}}</strong></div>
-        <form action="/logout" method="post" class="mt-1"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>Keluar</button></form>
+        <a href="/profile" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:text-orange-700"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>Profile saya</a>
+        <form action="/logout" method="post" class="mt-1 border-t border-slate-100 pt-1"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>Keluar</button></form>
       </div>
     </div>
   </div>
