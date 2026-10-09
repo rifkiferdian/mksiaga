@@ -76,6 +76,8 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		settings.POST("/users", auth.RequirePermission(db, "users.create"), userHandler.Create)
 		settings.POST("/users/:id/update", auth.RequirePermission(db, "users.update"), userHandler.Update)
 		settings.POST("/users/:id/delete", auth.RequirePermission(db, "users.delete"), userHandler.Delete)
+		settings.GET("/users/:id/stores", auth.RequirePermission(db, "users.update"), userHandler.StoreAssignments)
+		settings.POST("/users/:id/stores", auth.RequirePermission(db, "users.update"), userHandler.UpdateStoreAssignments)
 		settings.GET("/roles", auth.RequirePermission(db, "roles.view"), accessHandler.Roles)
 		settings.POST("/roles", auth.RequirePermission(db, "roles.create"), accessHandler.CreateRole)
 		settings.POST("/roles/:id/update", auth.RequirePermission(db, "roles.update"), accessHandler.UpdateRole)

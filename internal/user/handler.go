@@ -90,6 +90,56 @@ func (h *Handler) Delete(c *gin.Context) {
 	h.redirectResult(c, h.service.Delete(c.Request.Context(), id, currentID), "user-deleted")
 }
 
+func (h *Handler) StoreAssignments(c *gin.Context) {
+	id, ok := routeID(c)
+	if !ok {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	item, assignments, roles, err := h.service.StoreAssignments(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		h.redirect(c, "error", "not-found")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, http.StatusOK, "user/stores.html", gin.H{"Title": "Store user", "ActivePage": "users", "ManagedUser": item, "Assignments": assignments, "Roles": roles})
+}
+
+func (h *Handler) UpdateStoreAssignments(c *gin.Context) {
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		h.redirect(c, "error", "csrf")
+		return
+	}
+	id, ok := routeID(c)
+	if !ok {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	defaultStoreID, err := strconv.ParseUint(c.PostForm("default_store_id"), 10, 64)
+	if err != nil {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	inputs := make([]AssignmentInput, 0)
+	for _, rawStoreID := range c.PostFormArray("store_ids") {
+		storeID, storeErr := strconv.ParseUint(rawStoreID, 10, 64)
+		roleID, roleErr := strconv.ParseUint(c.PostForm("role_"+rawStoreID), 10, 64)
+		if storeErr != nil || roleErr != nil {
+			h.redirect(c, "error", "invalid")
+			return
+		}
+		inputs = append(inputs, AssignmentInput{StoreID: storeID, RoleID: roleID, IsDefault: storeID == defaultStoreID})
+	}
+	if err := h.service.SyncStoreAssignments(c.Request.Context(), id, inputs); err != nil {
+		h.redirectResult(c, err, "user-stores-updated")
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/settings/users/"+strconv.FormatUint(id, 10)+"/stores?success=user-stores-updated")
+}
+
 func formInput(c *gin.Context) (Input, bool) {
 	storeID, e1 := strconv.ParseUint(c.PostForm("store_id"), 10, 64)
 	roleID, e2 := strconv.ParseUint(c.PostForm("role_id"), 10, 64)
@@ -163,5 +213,5 @@ func initials(name string) string {
 	return value
 }
 func message(code string) string {
-	return map[string]string{"user-created": "User berhasil dibuat.", "user-updated": "User berhasil diperbarui.", "user-deleted": "User berhasil dinonaktifkan dan dihapus dari daftar.", "csrf": "Sesi form berakhir. Silakan muat ulang halaman.", "invalid": "Data user belum lengkap atau tidak valid.", "duplicate": "Username, email, atau nomor pegawai sudah digunakan.", "protected": "Akun yang sedang digunakan tidak dapat dihapus.", "not-found": "User tidak ditemukan.", "failed": "Operasi user gagal diproses."}[code]
+	return map[string]string{"user-created": "User berhasil dibuat.", "user-updated": "User berhasil diperbarui.", "user-deleted": "User berhasil dinonaktifkan dan dihapus dari daftar.", "user-stores-updated": "Assignment store dan role user berhasil disimpan.", "csrf": "Sesi form berakhir. Silakan muat ulang halaman.", "invalid": "Data user belum lengkap atau tidak valid.", "duplicate": "Username, email, atau nomor pegawai sudah digunakan.", "protected": "Akun yang sedang digunakan tidak dapat dihapus.", "not-found": "User tidak ditemukan.", "failed": "Operasi user gagal diproses."}[code]
 }

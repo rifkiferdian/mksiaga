@@ -26,6 +26,20 @@ type RoleOption struct {
 	Name string
 }
 
+type StoreAssignment struct {
+	StoreID   uint64
+	StoreName string
+	Assigned  bool
+	IsDefault bool
+	RoleID    uint64
+}
+
+type AssignmentInput struct {
+	StoreID   uint64
+	RoleID    uint64
+	IsDefault bool
+}
+
 type Input struct {
 	EmployeeNumber string
 	Name           string

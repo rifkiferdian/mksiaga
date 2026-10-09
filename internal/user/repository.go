@@ -86,6 +86,72 @@ func (r *Repository) Options(ctx context.Context) ([]StoreOption, []RoleOption, 
 	return stores, roles, roleRows.Err()
 }
 
+func (r *Repository) StoreAssignments(ctx context.Context, userID uint64) ([]StoreAssignment, error) {
+	const query = `SELECT s.id,s.name,us.id IS NOT NULL,COALESCE(us.is_default,0),
+		COALESCE((SELECT role_id FROM user_store_roles WHERE user_store_id=us.id ORDER BY role_id LIMIT 1),0)
+		FROM stores s
+		LEFT JOIN user_stores us ON us.store_id=s.id AND us.user_id=? AND us.status='active'
+		WHERE s.status='active' AND s.deleted_at IS NULL ORDER BY s.name`
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list user store assignments: %w", err)
+	}
+	defer rows.Close()
+	var result []StoreAssignment
+	for rows.Next() {
+		var item StoreAssignment
+		if err := rows.Scan(&item.StoreID, &item.StoreName, &item.Assigned, &item.IsDefault, &item.RoleID); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
+func (r *Repository) SyncStoreAssignments(ctx context.Context, userID uint64, assignments []AssignmentInput) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `UPDATE user_stores SET status='inactive',is_default=0 WHERE user_id=?`, userID); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, `DELETE usr FROM user_store_roles usr JOIN user_stores us ON us.id=usr.user_store_id WHERE us.user_id=?`, userID); err != nil {
+		return err
+	}
+	for _, assignment := range assignments {
+		result, execErr := tx.ExecContext(ctx, `INSERT INTO user_stores(user_id,store_id,is_default,status,joined_at)
+			SELECT ?,s.id,?,'active',CURRENT_TIMESTAMP(6) FROM stores s WHERE s.id=? AND s.status='active' AND s.deleted_at IS NULL
+			ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(user_stores.id),is_default=VALUES(is_default),status='active'`, userID, assignment.IsDefault, assignment.StoreID)
+		if execErr != nil {
+			return execErr
+		}
+		userStoreID, idErr := result.LastInsertId()
+		if idErr != nil {
+			return idErr
+		}
+		if userStoreID == 0 {
+			return sql.ErrNoRows
+		}
+		if _, err = tx.ExecContext(ctx, `DELETE FROM user_store_roles WHERE user_store_id=?`, userStoreID); err != nil {
+			return err
+		}
+		result, err = tx.ExecContext(ctx, `INSERT INTO user_store_roles(user_store_id,role_id) SELECT ?,id FROM roles WHERE id=? AND guard_name='web'`, userStoreID, assignment.RoleID)
+		if err != nil {
+			return err
+		}
+		affected, affectedErr := result.RowsAffected()
+		if affectedErr != nil {
+			return affectedErr
+		}
+		if affected == 0 {
+			return sql.ErrNoRows
+		}
+	}
+	return tx.Commit()
+}
+
 func (r *Repository) Create(ctx context.Context, input Input, passwordHash string) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {

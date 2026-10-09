@@ -27,6 +27,41 @@ func (s *Service) Users(ctx context.Context) ([]User, error) { return s.reposito
 func (s *Service) Options(ctx context.Context) ([]StoreOption, []RoleOption, error) {
 	return s.repository.Options(ctx)
 }
+func (s *Service) StoreAssignments(ctx context.Context, userID uint64) (User, []StoreAssignment, []RoleOption, error) {
+	item, err := s.repository.User(ctx, userID)
+	if err != nil {
+		return User{}, nil, nil, err
+	}
+	assignments, err := s.repository.StoreAssignments(ctx, userID)
+	if err != nil {
+		return User{}, nil, nil, err
+	}
+	_, roles, err := s.repository.Options(ctx)
+	return item, assignments, roles, err
+}
+func (s *Service) SyncStoreAssignments(ctx context.Context, userID uint64, assignments []AssignmentInput) error {
+	if _, err := s.repository.User(ctx, userID); err != nil {
+		return err
+	}
+	if len(assignments) == 0 {
+		return ErrInvalid
+	}
+	seen := make(map[uint64]bool, len(assignments))
+	defaultCount := 0
+	for _, item := range assignments {
+		if item.StoreID == 0 || item.RoleID == 0 || seen[item.StoreID] {
+			return ErrInvalid
+		}
+		seen[item.StoreID] = true
+		if item.IsDefault {
+			defaultCount++
+		}
+	}
+	if defaultCount != 1 {
+		return ErrInvalid
+	}
+	return s.repository.SyncStoreAssignments(ctx, userID, assignments)
+}
 
 func (s *Service) Create(ctx context.Context, input Input) error {
 	input, err := normalize(input, true)

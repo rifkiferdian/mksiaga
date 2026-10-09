@@ -210,6 +210,21 @@ document.querySelectorAll("[data-edit-store]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-user-store-row]").forEach((row) => {
+  const checkbox = row.querySelector("[data-user-store-checkbox]");
+  const role = row.querySelector("[data-user-store-role]");
+  const defaultRadio = row.querySelector("[data-user-store-default]");
+  checkbox?.addEventListener("change", () => {
+    const enabled = checkbox.checked;
+    if (role) role.disabled = !enabled;
+    if (defaultRadio) {
+      defaultRadio.disabled = !enabled;
+      if (!enabled) defaultRadio.checked = false;
+    }
+    if (enabled && !document.querySelector("[data-user-store-default]:checked")) defaultRadio.checked = true;
+  });
+});
+
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
   const deleteButton = form.querySelector("button");
   if (deleteButton && !deleteButton.title) deleteButton.title = deleteButton.disabled ? "Data dilindungi" : "Hapus";
