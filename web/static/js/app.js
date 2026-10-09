@@ -166,8 +166,28 @@ document.querySelectorAll("[data-edit-permission]").forEach((button) => {
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
   const deleteButton = form.querySelector("button");
   if (deleteButton && !deleteButton.title) deleteButton.title = deleteButton.disabled ? "Data dilindungi" : "Hapus";
-  form.addEventListener("submit", (event) => {
-    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (typeof Swal === "undefined") {
+      if (window.confirm(form.dataset.confirm)) form.submit();
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: "Hapus data?",
+      text: form.dataset.confirm,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, hapus",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (result.isConfirmed) form.submit();
   });
 });
 

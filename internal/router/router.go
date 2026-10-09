@@ -43,6 +43,8 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	fontAwesomeRoot := filepath.Join(filepath.Dir(webRoot), "node_modules", "@fortawesome", "fontawesome-free")
 	r.StaticFile("/vendor/fontawesome/css/all.min.css", filepath.Join(fontAwesomeRoot, "css", "all.min.css"))
 	r.Static("/vendor/fontawesome/webfonts", filepath.Join(fontAwesomeRoot, "webfonts"))
+	sweetAlertRoot := filepath.Join(filepath.Dir(webRoot), "node_modules", "sweetalert2", "dist")
+	r.StaticFile("/vendor/sweetalert2/sweetalert2.all.min.js", filepath.Join(sweetAlertRoot, "sweetalert2.all.min.js"))
 	var authService *auth.Service
 	if db != nil {
 		authService = auth.NewService(auth.NewRepository(db))
