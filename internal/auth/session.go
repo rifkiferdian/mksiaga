@@ -3,33 +3,37 @@ package auth
 import (
 	"crypto/rand"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	SessionName       = "mksiaga_session"
-	sessionUserID     = "user_id"
-	sessionUserName   = "user_name"
-	sessionStoreID    = "store_id"
-	sessionStoreName  = "store_name"
-	sessionRoleName   = "role_name"
-	sessionCSRFToken  = "csrf_token"
-	defaultSessionAge = 12 * 60 * 60
-	rememberedAge     = 30 * 24 * 60 * 60
+	SessionName        = "mksiaga_session"
+	sessionUserID      = "user_id"
+	sessionUserName    = "user_name"
+	sessionStoreID     = "store_id"
+	sessionUserStoreID = "user_store_id"
+	sessionStoreName   = "store_name"
+	sessionRoleName    = "role_name"
+	sessionCSRFToken   = "csrf_token"
+	defaultSessionAge  = 12 * 60 * 60
+	rememberedAge      = 30 * 24 * 60 * 60
 )
 
 type SessionUser struct {
-	ID        string
-	Name      string
-	StoreID   string
-	StoreName string
-	RoleName  string
+	ID          string
+	Name        string
+	StoreID     string
+	UserStoreID string
+	StoreName   string
+	RoleName    string
 }
 
 func CurrentUser(c *gin.Context) (SessionUser, bool) {
@@ -39,11 +43,12 @@ func CurrentUser(c *gin.Context) (SessionUser, bool) {
 		return SessionUser{}, false
 	}
 	return SessionUser{
-		ID:        userID,
-		Name:      stringValue(session.Get(sessionUserName)),
-		StoreID:   stringValue(session.Get(sessionStoreID)),
-		StoreName: stringValue(session.Get(sessionStoreName)),
-		RoleName:  stringValue(session.Get(sessionRoleName)),
+		ID:          userID,
+		Name:        stringValue(session.Get(sessionUserName)),
+		StoreID:     stringValue(session.Get(sessionStoreID)),
+		UserStoreID: stringValue(session.Get(sessionUserStoreID)),
+		StoreName:   stringValue(session.Get(sessionStoreName)),
+		RoleName:    stringValue(session.Get(sessionRoleName)),
 	}, true
 }
 
@@ -51,6 +56,62 @@ func RequireLogin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, ok := CurrentUser(c); !ok {
 			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func RequireRole(required string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, ok := CurrentUser(c)
+		if !ok {
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		for _, role := range strings.Split(user.RoleName, ",") {
+			if strings.TrimSpace(role) == required {
+				c.Next()
+				return
+			}
+		}
+		c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
+		c.Abort()
+	}
+}
+
+func RequirePermission(db *sql.DB, permission string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, ok := CurrentUser(c)
+		if !ok {
+			c.Redirect(http.StatusSeeOther, "/login")
+			c.Abort()
+			return
+		}
+		for _, role := range strings.Split(user.RoleName, ",") {
+			if strings.TrimSpace(role) == "superadmin" {
+				c.Next()
+				return
+			}
+		}
+		userStoreID, err := strconv.ParseUint(user.UserStoreID, 10, 64)
+		if err != nil {
+			c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
+			c.Abort()
+			return
+		}
+		const query = `SELECT EXISTS(
+			SELECT 1 FROM permissions p
+			WHERE p.name=? AND p.guard_name='web' AND (
+				EXISTS(SELECT 1 FROM user_store_permissions usp WHERE usp.user_store_id=? AND usp.permission_id=p.id)
+				OR EXISTS(SELECT 1 FROM user_store_roles usr JOIN role_permissions rp ON rp.role_id=usr.role_id WHERE usr.user_store_id=? AND rp.permission_id=p.id)
+			)
+		)`
+		var allowed bool
+		if err := db.QueryRowContext(c.Request.Context(), query, permission, userStoreID, userStoreID).Scan(&allowed); err != nil || !allowed {
+			c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
 			c.Abort()
 			return
 		}
@@ -93,6 +154,7 @@ func SaveLogin(c *gin.Context, user User, remember, secure bool) error {
 	session.Set(sessionUserID, strconv.FormatUint(user.ID, 10))
 	session.Set(sessionUserName, user.Name)
 	session.Set(sessionStoreID, strconv.FormatUint(user.StoreID, 10))
+	session.Set(sessionUserStoreID, strconv.FormatUint(user.UserStoreID, 10))
 	session.Set(sessionStoreName, user.StoreName)
 	session.Set(sessionRoleName, user.RoleName)
 	token, err := newToken()

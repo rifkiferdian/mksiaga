@@ -23,7 +23,7 @@ SET @role_id = LAST_INSERT_ID();
 
 INSERT INTO users (name, username, email, password_hash, status)
 VALUES (
-    'Super Administrator',
+    'Admin Security',
     'admin',
     'admin@mksiaga.local',
     '$2y$10$lwkQLoTL4oDoSPj6oGHuL.bhCFZzZE3hfwul5dw6f738FrThFhov6',

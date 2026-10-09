@@ -8,14 +8,26 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"mksiaga/internal/auth"
+	"mksiaga/internal/navigation"
 )
 
-type Handler struct{ appName string }
+type Handler struct {
+	appName    string
+	navigation *navigation.Service
+}
 
-func NewHandler(appName string) *Handler { return &Handler{appName: appName} }
+func NewHandler(appName string, navigationService *navigation.Service) *Handler {
+	return &Handler{appName: appName, navigation: navigationService}
+}
 
 func (h *Handler) Index(c *gin.Context) {
 	user, _ := auth.CurrentUser(c)
+	menus, err := h.navigation.Menus(c.Request.Context(), user, "dashboard")
+	if err != nil {
+		slog.Error("prepare dashboard navigation", "error", err)
+		c.String(http.StatusInternalServerError, "Navigasi tidak dapat disiapkan.")
+		return
+	}
 	csrfToken, err := auth.CSRFToken(c)
 	if err != nil {
 		slog.Error("prepare dashboard csrf", "error", err)
@@ -23,7 +35,8 @@ func (h *Handler) Index(c *gin.Context) {
 		return
 	}
 	c.HTML(http.StatusOK, "dashboard/index.html", gin.H{
-		"Title":         "Beranda",
+		"Title":         "Dashboard",
+		"Section":       "Ruang kerja",
 		"AppName":       h.appName,
 		"Authenticated": true,
 		"IsDashboard":   true,
@@ -32,6 +45,7 @@ func (h *Handler) Index(c *gin.Context) {
 		"StoreName":     user.StoreName,
 		"RoleName":      user.RoleName,
 		"DateLabel":     indonesianDate(time.Now()),
+		"Menus":         menus,
 		"CSRFToken":     csrfToken,
 	})
 }

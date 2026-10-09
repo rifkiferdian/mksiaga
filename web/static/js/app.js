@@ -124,3 +124,157 @@ document.addEventListener("keydown", (event) => {
     setSidebar(false);
   }
 });
+
+document.querySelectorAll("[data-open-dialog]").forEach((button) => {
+  button.addEventListener("click", () => document.getElementById(button.dataset.openDialog)?.showModal());
+});
+document.querySelectorAll("[data-close-dialog]").forEach((button) => {
+  button.addEventListener("click", () => button.closest("dialog")?.close());
+});
+document.querySelectorAll("dialog").forEach((dialog) => {
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+});
+
+document.querySelectorAll("[data-edit-role]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editRoleDialog");
+    const form = document.getElementById("editRoleForm");
+    if (!dialog || !form) return;
+    form.action = `/settings/roles/${button.dataset.id}/update`;
+    form.elements.name.value = button.dataset.name;
+    form.elements.guard_name.value = button.dataset.guard;
+    form.elements.description.value = button.dataset.description;
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-permission]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editPermissionDialog");
+    const form = document.getElementById("editPermissionForm");
+    if (!dialog || !form) return;
+    form.action = `/settings/permissions/${button.dataset.id}/update`;
+    form.elements.name.value = button.dataset.name;
+    form.elements.guard_name.value = button.dataset.guard;
+    form.elements.description.value = button.dataset.description;
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+  const deleteButton = form.querySelector("button");
+  if (deleteButton && !deleteButton.title) deleteButton.title = deleteButton.disabled ? "Data dilindungi" : "Hapus";
+  form.addEventListener("submit", (event) => {
+    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});
+
+document.querySelectorAll("[data-edit-role], [data-edit-permission]").forEach((button) => {
+  button.title = "Edit";
+});
+
+document.querySelectorAll("[data-access-filter]").forEach((filter) => {
+  const table = filter.nextElementSibling;
+  if (!table?.matches("[data-filter-table]")) return;
+
+  const search = filter.querySelector("[data-filter-search]");
+  const guard = filter.querySelector("[data-filter-guard]");
+  const count = filter.querySelector("[data-filter-count]");
+  const rows = [...table.querySelectorAll("[data-filter-row]")];
+  const empty = table.querySelector("[data-filter-empty]");
+
+  [...new Set(rows.map((row) => row.dataset.filterGuard).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right))
+    .forEach((value) => guard?.add(new Option(value, value)));
+
+  function applyAccessFilter() {
+    const query = search?.value.trim().toLowerCase() ?? "";
+    const selectedGuard = guard?.value ?? "";
+    let visible = 0;
+
+    rows.forEach((row) => {
+      const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
+      const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
+      const shown = matchesSearch && matchesGuard;
+      row.classList.toggle("hidden", !shown);
+      if (shown) visible += 1;
+    });
+
+    if (count) count.textContent = `${visible} data`;
+    empty?.classList.toggle("hidden", visible !== 0 || rows.length === 0);
+  }
+
+  search?.addEventListener("input", applyAccessFilter);
+  guard?.addEventListener("change", applyAccessFilter);
+  applyAccessFilter();
+});
+
+document.querySelectorAll("[data-permission-select]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const checked = button.dataset.permissionSelect === "all";
+    document.querySelectorAll('input[name="permission_ids"]').forEach((input) => { input.checked = checked; });
+    updatePermissionCounters();
+  });
+});
+
+function updatePermissionCounters() {
+  const inputs = [...document.querySelectorAll('input[name="permission_ids"]')];
+  const total = inputs.filter((input) => input.checked).length;
+  const totalElement = document.getElementById("assignedPermissionCount");
+  if (totalElement) totalElement.textContent = String(total);
+
+  document.querySelectorAll("[data-permission-group]").forEach((group) => {
+    const assigned = [...group.querySelectorAll('input[name="permission_ids"]')].filter((input) => input.checked).length;
+    const counter = group.querySelector("[data-group-assigned]");
+    if (counter) counter.textContent = String(assigned);
+  });
+}
+
+document.querySelectorAll('input[name="permission_ids"]').forEach((input) => {
+  input.addEventListener("change", updatePermissionCounters);
+});
+
+document.querySelectorAll("[data-group-select]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const group = button.closest("[data-permission-group]");
+    const checked = button.dataset.groupSelect === "all";
+    group?.querySelectorAll('input[name="permission_ids"]').forEach((input) => { input.checked = checked; });
+    updatePermissionCounters();
+  });
+});
+
+document.getElementById("permissionSearch")?.addEventListener("input", (event) => {
+  const query = event.target.value.trim().toLowerCase();
+  let visibleTotal = 0;
+  document.querySelectorAll("[data-permission-group]").forEach((group) => {
+    let groupVisible = 0;
+    group.querySelectorAll("[data-permission-item]").forEach((item) => {
+      const visible = (item.dataset.search ?? "").toLowerCase().includes(query);
+      item.classList.toggle("hidden", !visible);
+      if (visible) groupVisible += 1;
+    });
+    group.classList.toggle("hidden", groupVisible === 0);
+    visibleTotal += groupVisible;
+  });
+  document.getElementById("permissionEmpty")?.classList.toggle("hidden", visibleTotal !== 0);
+});
+
+const profileMenuButton = document.querySelector("[data-profile-menu-button]");
+const profileMenu = document.querySelector("[data-profile-menu]");
+
+profileMenuButton?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  const opening = profileMenu?.classList.contains("hidden");
+  profileMenu?.classList.toggle("hidden", !opening);
+  profileMenuButton.setAttribute("aria-expanded", String(opening));
+});
+
+document.addEventListener("click", (event) => {
+  if (!profileMenu || !profileMenuButton) return;
+  if (!profileMenu.contains(event.target) && !profileMenuButton.contains(event.target)) {
+    profileMenu.classList.add("hidden");
+    profileMenuButton.setAttribute("aria-expanded", "false");
+  }
+});

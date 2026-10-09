@@ -1,3 +1,103 @@
 @import "tailwindcss" source(none);
 @source "../../templates";
 @source "../../static/js";
+
+.permission-numbered-rows {
+  counter-reset: permission-row;
+}
+
+.permission-numbered-rows > tr {
+  counter-increment: permission-row;
+}
+
+.permission-row-number::before {
+  content: counter(permission-row);
+}
+
+.role-numbered-rows {
+  counter-reset: role-row;
+}
+
+.role-numbered-rows > tr {
+  counter-increment: role-row;
+}
+
+.role-row-number::before {
+  content: counter(role-row);
+}
+
+/* Compact icon actions for access-management tables. The original text remains
+   in the DOM so screen readers still announce each action correctly. */
+[data-edit-role],
+[data-edit-permission],
+form[data-confirm] > button {
+  position: relative;
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: .625rem;
+  font-size: 0;
+  line-height: 1;
+  transition: color 150ms, background-color 150ms, box-shadow 150ms, transform 150ms;
+}
+
+[data-edit-role]::before,
+[data-edit-permission]::before,
+form[data-confirm] > button::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  font-family: "Font Awesome 7 Free";
+  font-size: .875rem;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  text-rendering: auto;
+  transform: translate(-50%, -50%);
+}
+
+[data-edit-role]::before,
+[data-edit-permission]::before {
+  content: "\f304";
+}
+
+form[data-confirm] > button::before {
+  content: "\f2ed";
+}
+
+[data-edit-role],
+[data-edit-permission] {
+  background-color: var(--color-orange-50);
+  color: var(--color-orange-600);
+  box-shadow: inset 0 0 0 1px var(--color-orange-100);
+}
+
+form[data-confirm] > button {
+  background-color: var(--color-red-50);
+  color: var(--color-red-500);
+  box-shadow: inset 0 0 0 1px var(--color-red-100);
+}
+
+[data-edit-role]:hover,
+[data-edit-permission]:hover {
+  background-color: var(--color-orange-500);
+  color: white;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-orange-500) 25%, transparent);
+  transform: translateY(-1px);
+}
+
+form[data-confirm] > button:hover:not(:disabled) {
+  background-color: var(--color-red-500);
+  color: white;
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-red-500) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+form[data-confirm] > button:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
