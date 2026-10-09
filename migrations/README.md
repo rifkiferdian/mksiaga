@@ -34,6 +34,10 @@ Seed ini tidak boleh dijalankan pada production.
 
 `seeds/000003_user_management_permissions.sql` menambahkan permission CRUD user dan memberikannya kepada role `superadmin`.
 
+`seeds/000004_store_management_permissions.sql` menambahkan permission CRUD master data store dan memberikannya kepada role `superadmin`.
+
+`seeds/000005_master_stores.sql` mengisi master Store MK1–MK7 dan MK Mini 1–3 dengan ID yang sama seperti data sumber.
+
 Menjalankan migrasi secara manual dari PowerShell/XAMPP:
 
 ```powershell

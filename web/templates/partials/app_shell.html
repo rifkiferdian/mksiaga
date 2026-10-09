@@ -9,7 +9,8 @@
     {{if .Children}}
     <div data-sidebar-parent>
       <button type="button" data-sidebar-toggle aria-expanded="{{if .Open}}true{{else}}false{{end}}" class="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
-        <svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M9 12h6m-3-3v6"/></svg>
+        {{if eq .Key "access"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M9 12h6m-3-3v6"/></svg>{{end}}
+        {{if eq .Key "master"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/><path d="M8 14h3v6"/></svg>{{end}}
         <span class="flex-1">{{.Label}}</span>
         <svg data-sidebar-chevron viewBox="0 0 24 24" class="size-4 transition-transform {{if .Open}}rotate-180{{end}}" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
       </button>
@@ -19,6 +20,7 @@
           {{if eq .Key "users"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M3 21a6 6 0 0 1 12 0m3-9h3m-1.5-1.5v3"/></svg>{{end}}
           {{if eq .Key "roles"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>{{end}}
           {{if eq .Key "permissions"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 3 3"/></svg>{{end}}
+          {{if eq .Key "stores"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/><path d="M8 14h3v6"/></svg>{{end}}
           {{.Label}}
         </a>
         {{end}}
@@ -40,8 +42,8 @@
 {{end}}
 
 {{define "appFooter"}}
-<footer class="mt-8 border-t border-slate-200 py-5 text-center text-xs text-slate-400">
-  Created by <span class="font-semibold text-slate-600">Divisi Software Development</span> <span class="text-orange-500">Manna Kampus</span>
+<footer class="mt-auto border-t border-slate-200 bg-white/90 px-4 py-5 text-center text-xs text-slate-400 backdrop-blur sm:px-6 lg:px-8">
+  Created by <span class="font-semibold text-slate-600">Division Software Development</span> <span class="text-orange-500">Manna Kampus</span> 2026 @AhmadRifki
 </footer>
 {{end}}
 

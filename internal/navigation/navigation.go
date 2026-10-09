@@ -35,6 +35,7 @@ type definition struct {
 
 var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
+	{group: "Master Data", parent: "master", key: "stores", label: "Store", url: "/master/stores", permission: "stores.view"},
 	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
 	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
 	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},
@@ -107,6 +108,19 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 			open = open || item.Active
 		}
 		groups[index].Items = append(groups[index].Items, Item{Key: "access", Label: "Manajemen Akses", Open: open, Active: open, Children: accessItems})
+	}
+	if masterItems := children["master"]; len(masterItems) > 0 {
+		index, exists := indexes["Master Data"]
+		if !exists {
+			index = len(groups)
+			indexes["Master Data"] = index
+			groups = append(groups, Group{Label: "Master Data"})
+		}
+		open := false
+		for _, item := range masterItems {
+			open = open || item.Active
+		}
+		groups[index].Items = append(groups[index].Items, Item{Key: "master", Label: "Master Data", Open: open, Active: open, Children: masterItems})
 	}
 	return groups, nil
 }

@@ -194,6 +194,22 @@ document.querySelectorAll("[data-edit-user]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-edit-store]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editStoreDialog");
+    const form = document.getElementById("editStoreForm");
+    if (!dialog || !form) return;
+    form.action = `/master/stores/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.address.value = button.dataset.address ?? "";
+    form.elements.phone.value = button.dataset.phone ?? "";
+    form.elements.timezone.value = button.dataset.timezone ?? "Asia/Jakarta";
+    form.elements.status.value = button.dataset.status ?? "active";
+    dialog.showModal();
+  });
+});
+
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
   const deleteButton = form.querySelector("button");
   if (deleteButton && !deleteButton.title) deleteButton.title = deleteButton.disabled ? "Data dilindungi" : "Hapus";
@@ -222,7 +238,7 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user]").forEach((button) => {
+document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store]").forEach((button) => {
   button.title = "Edit";
 });
 
@@ -251,7 +267,11 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
       const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
       const shown = matchesSearch && matchesGuard;
       row.classList.toggle("hidden", !shown);
-      if (shown) visible += 1;
+      if (shown) {
+        visible += 1;
+        const number = row.querySelector("[data-row-number]");
+        if (number) number.textContent = String(visible);
+      }
     });
 
     if (count) count.textContent = `${visible} data`;

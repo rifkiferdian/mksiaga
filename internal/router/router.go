@@ -16,6 +16,7 @@ import (
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/profile"
+	storeManagement "mksiaga/internal/store"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
 )
@@ -65,6 +66,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	if db != nil {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
+		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
@@ -84,6 +86,11 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		settings.POST("/permissions", auth.RequirePermission(db, "permissions.create"), accessHandler.CreatePermission)
 		settings.POST("/permissions/:id/update", auth.RequirePermission(db, "permissions.update"), accessHandler.UpdatePermission)
 		settings.POST("/permissions/:id/delete", auth.RequirePermission(db, "permissions.delete"), accessHandler.DeletePermission)
+		master := authorized.Group("/master")
+		master.GET("/stores", auth.RequirePermission(db, "stores.view"), storeHandler.Index)
+		master.POST("/stores", auth.RequirePermission(db, "stores.create"), storeHandler.Create)
+		master.POST("/stores/:id/update", auth.RequirePermission(db, "stores.update"), storeHandler.Update)
+		master.POST("/stores/:id/delete", auth.RequirePermission(db, "stores.delete"), storeHandler.Delete)
 	}
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

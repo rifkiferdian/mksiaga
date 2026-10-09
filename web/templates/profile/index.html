@@ -1,9 +1,9 @@
 {{define "content"}}
 <div class="min-h-screen bg-slate-50">
   {{template "appSidebar" .}}
-  <div class="min-h-screen lg:pl-72">
+  <div class="flex min-h-screen flex-col lg:pl-72">
     {{template "appTopbar" .}}
-    <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6"><p class="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-600">Pengaturan akun</p><h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Profile saya</h1><p class="mt-2 text-sm text-slate-500">Perbarui identitas akun dan jaga keamanan password Anda.</p></div>
 
       {{template "feedback" .}}
@@ -34,8 +34,8 @@
           <form action="/profile/password" method="post" class="mt-6 space-y-4"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><label class="block text-xs font-bold text-slate-700">Password saat ini<input name="current_password" type="password" required maxlength="72" autocomplete="current-password" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"></label><label class="block text-xs font-bold text-slate-700">Password baru<input name="new_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"></label><label class="block text-xs font-bold text-slate-700">Konfirmasi password baru<input name="password_confirmation" type="password" required minlength="8" maxlength="72" autocomplete="new-password" class="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-normal outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"></label><button class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800 sm:w-auto">Ganti password</button></form>
         </section>
       </div>
-      {{template "appFooter" .}}
     </main>
+    {{template "appFooter" .}}
   </div>
   <div id="dashboardToast" class="fixed bottom-5 left-1/2 z-[70] hidden -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-3 text-xs text-white"></div>
 </div>
