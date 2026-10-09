@@ -26,6 +26,18 @@ document.getElementById("openSidebar")?.addEventListener("click", () => setSideb
 document.getElementById("closeSidebar")?.addEventListener("click", () => setSidebar(false));
 sidebarBackdrop?.addEventListener("click", () => setSidebar(false));
 
+document.querySelectorAll("[data-sidebar-toggle]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const parent = button.closest("[data-sidebar-parent]");
+    const submenu = parent?.querySelector("[data-sidebar-submenu]");
+    const chevron = button.querySelector("[data-sidebar-chevron]");
+    const opening = submenu?.classList.contains("hidden") ?? false;
+    submenu?.classList.toggle("hidden", !opening);
+    chevron?.classList.toggle("rotate-180", opening);
+    button.setAttribute("aria-expanded", String(opening));
+  });
+});
+
 const toast = document.getElementById("dashboardToast");
 let toastTimer;
 
@@ -163,6 +175,25 @@ document.querySelectorAll("[data-edit-permission]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-edit-user]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editUserDialog");
+    const form = document.getElementById("editUserForm");
+    if (!dialog || !form) return;
+    form.action = `/settings/users/${button.dataset.id}/update`;
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.employee_number.value = button.dataset.employeeNumber ?? "";
+    form.elements.username.value = button.dataset.username ?? "";
+    form.elements.email.value = button.dataset.email ?? "";
+    form.elements.phone.value = button.dataset.phone ?? "";
+    form.elements.password.value = "";
+    form.elements.status.value = button.dataset.status ?? "active";
+    form.elements.store_id.value = button.dataset.storeId ?? "";
+    form.elements.role_id.value = button.dataset.roleId ?? "";
+    dialog.showModal();
+  });
+});
+
 document.querySelectorAll("form[data-confirm]").forEach((form) => {
   const deleteButton = form.querySelector("button");
   if (deleteButton && !deleteButton.title) deleteButton.title = deleteButton.disabled ? "Data dilindungi" : "Hapus";
@@ -191,7 +222,7 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-document.querySelectorAll("[data-edit-role], [data-edit-permission]").forEach((button) => {
+document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user]").forEach((button) => {
   button.title = "Edit";
 });
 
@@ -205,7 +236,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
 
-  [...new Set(rows.map((row) => row.dataset.filterGuard).filter(Boolean))]
+  const existingOptions = new Set([...guard?.options ?? []].map((option) => option.value));
+  [...new Set(rows.map((row) => row.dataset.filterGuard).filter((value) => value && !existingOptions.has(value)))]
     .sort((left, right) => left.localeCompare(right))
     .forEach((value) => guard?.add(new Option(value, value)));
 

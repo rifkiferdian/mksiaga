@@ -11,10 +11,12 @@ import (
 )
 
 type Item struct {
-	Key    string
-	Label  string
-	URL    string
-	Active bool
+	Key      string
+	Label    string
+	URL      string
+	Active   bool
+	Open     bool
+	Children []Item
 }
 
 type Group struct {
@@ -28,12 +30,14 @@ type definition struct {
 	label      string
 	url        string
 	permission string
+	parent     string
 }
 
 var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
-	{group: "Pengelolaan", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
-	{group: "Pengelolaan", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},
+	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
+	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
+	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},
 }
 
 type Service struct{ db *sql.DB }
@@ -73,8 +77,14 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 
 	groups := make([]Group, 0, 2)
 	indexes := make(map[string]int)
+	children := make(map[string][]Item)
 	for _, definition := range definitions {
 		if definition.permission != "" && !allowed[definition.permission] {
+			continue
+		}
+		item := Item{Key: definition.key, Label: definition.label, URL: definition.url, Active: definition.key == activePage}
+		if definition.parent != "" {
+			children[definition.parent] = append(children[definition.parent], item)
 			continue
 		}
 		index, exists := indexes[definition.group]
@@ -83,7 +93,20 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 			indexes[definition.group] = index
 			groups = append(groups, Group{Label: definition.group})
 		}
-		groups[index].Items = append(groups[index].Items, Item{Key: definition.key, Label: definition.label, URL: definition.url, Active: definition.key == activePage})
+		groups[index].Items = append(groups[index].Items, item)
+	}
+	if accessItems := children["access"]; len(accessItems) > 0 {
+		index, exists := indexes["Pengelolaan"]
+		if !exists {
+			index = len(groups)
+			indexes["Pengelolaan"] = index
+			groups = append(groups, Group{Label: "Pengelolaan"})
+		}
+		open := false
+		for _, item := range accessItems {
+			open = open || item.Active
+		}
+		groups[index].Items = append(groups[index].Items, Item{Key: "access", Label: "Manajemen Akses", Open: open, Active: open, Children: accessItems})
 	}
 	return groups, nil
 }

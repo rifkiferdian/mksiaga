@@ -6,12 +6,33 @@
     {{range .Menus}}
     <p class="mb-2 mt-6 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 first:mt-0">{{.Label}}</p>
     {{range .Items}}
+    {{if .Children}}
+    <div data-sidebar-parent>
+      <button type="button" data-sidebar-toggle aria-expanded="{{if .Open}}true{{else}}false{{end}}" class="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
+        <svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M9 12h6m-3-3v6"/></svg>
+        <span class="flex-1">{{.Label}}</span>
+        <svg data-sidebar-chevron viewBox="0 0 24 24" class="size-4 transition-transform {{if .Open}}rotate-180{{end}}" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div data-sidebar-submenu class="mb-2 ml-5 space-y-1 border-l border-slate-200 pl-3 {{if not .Open}}hidden{{end}}">
+        {{range .Children}}
+        <a href="{{.URL}}" {{if .Active}}aria-current="page"{{end}} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
+          {{if eq .Key "users"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M3 21a6 6 0 0 1 12 0m3-9h3m-1.5-1.5v3"/></svg>{{end}}
+          {{if eq .Key "roles"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>{{end}}
+          {{if eq .Key "permissions"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 3 3"/></svg>{{end}}
+          {{.Label}}
+        </a>
+        {{end}}
+      </div>
+    </div>
+    {{else}}
     <a href="{{.URL}}" {{if .Active}}aria-current="page"{{end}} class="mb-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
       {{if eq .Key "dashboard"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>{{end}}
+      {{if eq .Key "users"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M3 21a6 6 0 0 1 12 0m3-9h3m-1.5-1.5v3"/></svg>{{end}}
       {{if eq .Key "roles"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>{{end}}
       {{if eq .Key "permissions"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 3 3"/></svg>{{end}}
       {{.Label}}
     </a>
+    {{end}}
     {{end}}{{end}}
   </nav>
   <div class="mt-5 border-t border-slate-100 pt-4"><div class="flex items-center gap-3 px-1"><span class="grid size-10 shrink-0 place-items-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">{{.UserInitials}}</span><span class="min-w-0"><strong class="block truncate text-xs">{{.UserName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{.StoreName}} · {{.RoleName}}</small></span></div></div>

@@ -32,6 +32,8 @@ Seed ini tidak boleh dijalankan pada production.
 
 `seeds/000002_access_management_permissions.sql` menambahkan permission awal untuk CRUD role dan permission, kemudian memberikannya kepada role `superadmin`.
 
+`seeds/000003_user_management_permissions.sql` menambahkan permission CRUD user dan memberikannya kepada role `superadmin`.
+
 Menjalankan migrasi secara manual dari PowerShell/XAMPP:
 
 ```powershell

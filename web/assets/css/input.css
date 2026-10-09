@@ -26,10 +26,23 @@
   content: counter(role-row);
 }
 
+.user-numbered-rows {
+  counter-reset: user-row;
+}
+
+.user-numbered-rows > tr[data-filter-row] {
+  counter-increment: user-row;
+}
+
+.user-row-number::before {
+  content: counter(user-row);
+}
+
 /* Compact icon actions for access-management tables. The original text remains
    in the DOM so screen readers still announce each action correctly. */
 [data-edit-role],
 [data-edit-permission],
+[data-edit-user],
 form[data-confirm] > button {
   position: relative;
   display: inline-grid;
@@ -46,6 +59,7 @@ form[data-confirm] > button {
 
 [data-edit-role]::before,
 [data-edit-permission]::before,
+[data-edit-user]::before,
 form[data-confirm] > button::before {
   position: absolute;
   top: 50%;
@@ -61,7 +75,8 @@ form[data-confirm] > button::before {
 }
 
 [data-edit-role]::before,
-[data-edit-permission]::before {
+[data-edit-permission]::before,
+[data-edit-user]::before {
   content: "\f304";
 }
 
@@ -70,7 +85,8 @@ form[data-confirm] > button::before {
 }
 
 [data-edit-role],
-[data-edit-permission] {
+[data-edit-permission],
+[data-edit-user] {
   background-color: var(--color-orange-50);
   color: var(--color-orange-600);
   box-shadow: inset 0 0 0 1px var(--color-orange-100);
@@ -83,7 +99,8 @@ form[data-confirm] > button {
 }
 
 [data-edit-role]:hover,
-[data-edit-permission]:hover {
+[data-edit-permission]:hover,
+[data-edit-user]:hover {
   background-color: var(--color-orange-500);
   color: white;
   box-shadow: 0 4px 10px color-mix(in srgb, var(--color-orange-500) 25%, transparent);
