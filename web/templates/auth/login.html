@@ -12,7 +12,7 @@
 
     <a href="/" class="relative flex w-fit items-center gap-3" aria-label="Kembali ke beranda MK Siaga">
       <span class="grid size-12 place-items-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-        <svg viewBox="0 0 24 24" class="size-7" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.9 8.8 7 10 4.1-1.2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        <i class="fa-solid fa-shield-halved size-7" aria-hidden="true"></i>
       </span>
       <span class="text-xl font-bold tracking-tight">{{.AppName}}</span>
     </a>
@@ -40,7 +40,7 @@
     <div class="w-full max-w-md">
       <a href="/" class="mb-10 flex items-center gap-3 text-white lg:hidden" aria-label="Kembali ke beranda MK Siaga">
         <span class="grid size-11 place-items-center rounded-2xl bg-orange-500 shadow-lg shadow-orange-950/30">
-          <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.9 8.8 7 10 4.1-1.2 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+          <i class="fa-solid fa-shield-halved size-6" aria-hidden="true"></i>
         </span>
         <span class="text-xl font-bold tracking-tight">{{.AppName}}</span>
       </a>
@@ -54,7 +54,7 @@
 
         {{if .Error}}
         <div role="alert" class="mb-6 flex gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm leading-6 text-orange-800">
-          <svg viewBox="0 0 24 24" class="mt-0.5 size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+          <i class="fa-solid fa-circle-exclamation mt-0.5 size-5 shrink-0" aria-hidden="true"></i>
           <p>{{.Error}}</p>
         </div>
         {{end}}
@@ -65,7 +65,7 @@
             <label for="username" class="mb-2 block text-sm font-semibold text-slate-700">Username atau email</label>
             <div class="relative">
               <span class="pointer-events-none absolute inset-y-0 left-0 grid w-12 place-items-center text-slate-400" aria-hidden="true">
-                <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                <i class="fa-solid fa-user size-5" aria-hidden="true"></i>
               </span>
               <input id="username" name="username" type="text" value="{{.Login}}" autocomplete="username" required autofocus placeholder="Masukkan username" class="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-100">
             </div>
@@ -78,12 +78,12 @@
             </div>
             <div class="relative">
               <span class="pointer-events-none absolute inset-y-0 left-0 grid w-12 place-items-center text-slate-400" aria-hidden="true">
-                <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <i class="fa-solid fa-lock size-5" aria-hidden="true"></i>
               </span>
               <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Masukkan password" class="h-13 w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-12 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-orange-500 focus:bg-white focus:ring-4 focus:ring-orange-100">
               <button type="button" data-password-toggle data-target="password" aria-label="Tampilkan password" aria-pressed="false" class="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-2xl text-slate-400 transition hover:text-orange-600 focus:outline-none focus:text-orange-600">
-                <svg data-eye-open viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
-                <svg data-eye-closed viewBox="0 0 24 24" class="hidden size-5" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 3 18 18M10.6 6.1A10 10 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.6 6.7C4 8.3 2.5 12 2.5 12s3.5 6 9.5 6a9.8 9.8 0 0 0 3-.5M10 10a2.8 2.8 0 0 0 4 4"/></svg>
+                <i data-eye-open class="fa-solid fa-eye size-5" aria-hidden="true"></i>
+                <i data-eye-closed class="fa-solid fa-eye-slash hidden size-5" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -95,7 +95,7 @@
 
           <button type="submit" class="group flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 font-bold text-white shadow-lg shadow-orange-200 transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-orange-300 focus:outline-none focus:ring-4 focus:ring-orange-200 active:translate-y-0">
             Masuk ke sistem
-            <svg viewBox="0 0 24 24" class="size-5 transition group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+            <i class="fa-solid fa-arrow-right size-5 transition group-hover:translate-x-1" aria-hidden="true"></i>
           </button>
         </form>
 

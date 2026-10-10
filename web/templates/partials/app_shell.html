@@ -1,7 +1,7 @@
 {{define "appSidebar"}}
 <div id="sidebarBackdrop" class="fixed inset-0 z-40 hidden bg-slate-950/50 backdrop-blur-sm lg:hidden"></div>
 <aside id="dashboardSidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-slate-200 bg-white px-4 py-5 shadow-xl transition-transform duration-300 lg:translate-x-0 lg:shadow-none">
-  <div class="flex items-center justify-between px-2 pb-7"><a href="/" class="flex items-center gap-3"><span class="grid size-11 place-items-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200"><svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg></span><span><strong class="block text-sm tracking-wide">Security Watch</strong><small class="mt-0.5 block text-[11px] text-slate-400">Portal keamanan internal</small></span></a><button id="closeSidebar" type="button" class="grid size-9 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Tutup menu"><svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="flex items-center justify-between px-2 pb-7"><a href="/" class="flex items-center gap-3"><span class="grid size-11 place-items-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200"><i class="fa-solid fa-shield-halved size-6" aria-hidden="true"></i></span><span><strong class="block text-sm tracking-wide">Security Watch</strong><small class="mt-0.5 block text-[11px] text-slate-400">Portal keamanan internal</small></span></a><button id="closeSidebar" type="button" class="grid size-9 place-items-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Tutup menu"><i class="fa-solid fa-xmark size-5" aria-hidden="true"></i></button></div>
   <nav class="flex-1 overflow-y-auto" aria-label="Navigasi aplikasi">
     {{range .Menus}}
     <p class="mb-2 mt-6 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 first:mt-0">{{.Label}}</p>
@@ -9,18 +9,18 @@
     {{if .Children}}
     <div data-sidebar-parent>
       <button type="button" data-sidebar-toggle aria-expanded="{{if .Open}}true{{else}}false{{end}}" class="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
-        {{if eq .Key "access"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="M9 12h6m-3-3v6"/></svg>{{end}}
-        {{if eq .Key "master"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/><path d="M8 14h3v6"/></svg>{{end}}
+        {{if eq .Key "access"}}<i class="fa-solid fa-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
+        {{if eq .Key "master"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
         <span class="flex-1">{{.Label}}</span>
-        <svg data-sidebar-chevron viewBox="0 0 24 24" class="size-4 transition-transform {{if .Open}}rotate-180{{end}}" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <i data-sidebar-chevron class="fa-solid fa-chevron-down size-4 transition-transform {{if .Open}}rotate-180{{end}}" aria-hidden="true"></i>
       </button>
       <div data-sidebar-submenu class="mb-2 ml-5 space-y-1 border-l border-slate-200 pl-3 {{if not .Open}}hidden{{end}}">
         {{range .Children}}
         <a href="{{.URL}}" {{if .Active}}aria-current="page"{{end}} class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
-          {{if eq .Key "users"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M3 21a6 6 0 0 1 12 0m3-9h3m-1.5-1.5v3"/></svg>{{end}}
-          {{if eq .Key "roles"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>{{end}}
-          {{if eq .Key "permissions"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 3 3"/></svg>{{end}}
-          {{if eq .Key "stores"}}<svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/><path d="M8 14h3v6"/></svg>{{end}}
+          {{if eq .Key "users"}}<i class="fa-solid fa-user-plus size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "stores"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{.Label}}
         </a>
         {{end}}
@@ -28,10 +28,10 @@
     </div>
     {{else}}
     <a href="{{.URL}}" {{if .Active}}aria-current="page"{{end}} class="mb-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
-      {{if eq .Key "dashboard"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>{{end}}
-      {{if eq .Key "users"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M3 21a6 6 0 0 1 12 0m3-9h3m-1.5-1.5v3"/></svg>{{end}}
-      {{if eq .Key "roles"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 11 2 2 4-4"/></svg>{{end}}
-      {{if eq .Key "permissions"}}<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8m-3 3 3 3m-6 0 3 3"/></svg>{{end}}
+      {{if eq .Key "dashboard"}}<i class="fa-solid fa-table-cells-large size-5" aria-hidden="true"></i>{{end}}
+      {{if eq .Key "users"}}<i class="fa-solid fa-user-plus size-5" aria-hidden="true"></i>{{end}}
+      {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5" aria-hidden="true"></i>{{end}}
+      {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5" aria-hidden="true"></i>{{end}}
       {{.Label}}
     </a>
     {{end}}
@@ -50,17 +50,29 @@
 {{define "appTopbar"}}
 <header class="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
   <div class="flex min-w-0 items-center gap-3">
-    <button id="openSidebar" type="button" class="grid size-9 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden" aria-label="Buka menu"><svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <button id="openSidebar" type="button" class="grid size-9 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden" aria-label="Buka menu"><i class="fa-solid fa-bars size-5" aria-hidden="true"></i></button>
     <p class="truncate text-xs text-slate-400">{{.Section}} <span class="mx-2">/</span> <strong class="font-semibold text-slate-700">{{.Title}}</strong></p>
   </div>
   <div class="flex shrink-0 items-center gap-1 sm:gap-2">
     <button type="button" data-demo-action="Pusat bantuan akan tersedia pada tahap berikutnya." class="grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Bantuan">
-      <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.7c-1.1 1.1-1.9 1.4-1.9 3"/><path d="M12 17h.01" stroke-width="3"/></svg>
+      <i class="fa-solid fa-circle-question size-[22px]" aria-hidden="true"></i>
     </button>
-    <button type="button" data-demo-action="Belum ada notifikasi baru." class="relative grid size-11 place-items-center rounded-xl text-slate-500 transition hover:bg-orange-50 hover:text-orange-600" aria-label="Notifikasi">
-      <svg viewBox="0 0 24 24" class="size-[22px]" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
-      <span class="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-orange-500"></span>
-    </button>
+    <details data-notification-wrapper class="group relative">
+      <summary data-notification-button class="relative grid size-11 cursor-pointer list-none place-items-center rounded-xl text-slate-500 transition marker:hidden hover:bg-orange-50 hover:text-orange-600" aria-label="Buka notifikasi">
+        <i class="fa-solid fa-bell size-[22px]" aria-hidden="true"></i>
+        <span data-notification-badge class="absolute right-0.5 top-0.5 grid min-w-5 place-items-center rounded-full border-2 border-white bg-orange-500 px-1 text-[9px] font-bold leading-4 text-white">3</span>
+      </summary>
+      <div data-notification-menu class="absolute right-0 top-[calc(100%+0.6rem)] z-50 hidden w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 group-open:block">
+        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3.5"><div><h3 class="text-sm font-bold text-slate-900">Notifikasi</h3><p class="mt-0.5 text-[10px] text-slate-400">Aktivitas terbaru sistem</p></div><button type="button" data-notification-read-all class="rounded-lg px-2.5 py-2 text-[10px] font-bold text-orange-600 hover:bg-orange-50">Tandai dibaca</button></div>
+        <div class="max-h-[22rem] overflow-y-auto">
+          <a href="/settings/users" class="flex gap-3 border-b border-slate-100 bg-orange-50/50 px-4 py-3.5 transition hover:bg-orange-50"><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-orange-100 text-orange-600"><i class="fa-solid fa-user-plus size-5" aria-hidden="true"></i></span><span class="min-w-0 flex-1"><span class="flex items-start justify-between gap-3"><strong class="text-xs text-slate-800">User baru ditambahkan</strong><i data-notification-dot class="mt-1 size-2 shrink-0 rounded-full bg-orange-500"></i></span><small class="mt-1 block text-[11px] leading-4 text-slate-500">Akun security baru telah terdaftar di MK3 Supeno.</small><time class="mt-1.5 block text-[9px] font-medium text-slate-400">5 menit lalu</time></span></a>
+          <a href="/master/stores" class="flex gap-3 border-b border-slate-100 bg-orange-50/50 px-4 py-3.5 transition hover:bg-orange-50"><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-600"><i class="fa-solid fa-store size-5" aria-hidden="true"></i></span><span class="min-w-0 flex-1"><span class="flex items-start justify-between gap-3"><strong class="text-xs text-slate-800">Assignment store diperbarui</strong><i data-notification-dot class="mt-1 size-2 shrink-0 rounded-full bg-orange-500"></i></span><small class="mt-1 block text-[11px] leading-4 text-slate-500">Akses user pada beberapa store berhasil disimpan.</small><time class="mt-1.5 block text-[9px] font-medium text-slate-400">18 menit lalu</time></span></a>
+          <a href="/settings/roles" class="flex gap-3 border-b border-slate-100 bg-orange-50/50 px-4 py-3.5 transition hover:bg-orange-50"><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-600"><i class="fa-solid fa-user-shield size-5" aria-hidden="true"></i></span><span class="min-w-0 flex-1"><span class="flex items-start justify-between gap-3"><strong class="text-xs text-slate-800">Permission role berubah</strong><i data-notification-dot class="mt-1 size-2 shrink-0 rounded-full bg-orange-500"></i></span><small class="mt-1 block text-[11px] leading-4 text-slate-500">Hak akses role Security telah diperbarui.</small><time class="mt-1.5 block text-[9px] font-medium text-slate-400">1 jam lalu</time></span></a>
+          <div class="flex gap-3 px-4 py-3.5"><span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-600"><i class="fa-solid fa-shield-halved size-5" aria-hidden="true"></i></span><span class="min-w-0 flex-1"><strong class="text-xs text-slate-800">Sistem berjalan normal</strong><small class="mt-1 block text-[11px] leading-4 text-slate-500">Tidak ada gangguan layanan yang terdeteksi.</small><time class="mt-1.5 block text-[9px] font-medium text-slate-400">Kemarin</time></span></div>
+        </div>
+        <button type="button" data-demo-action="Halaman semua notifikasi akan tersedia setelah data notifikasi terhubung." class="w-full border-t border-slate-100 px-4 py-3 text-center text-xs font-bold text-orange-600 hover:bg-orange-50">Lihat semua notifikasi</button>
+      </div>
+    </details>
     <span class="mx-1 h-8 w-px bg-slate-200 sm:mx-2" aria-hidden="true"></span>
     <div class="relative">
       <button type="button" data-profile-menu-button aria-expanded="false" class="flex items-center gap-2 rounded-xl p-1.5 text-left transition hover:bg-slate-50 sm:pr-3">
@@ -70,8 +82,8 @@
       <div data-profile-menu class="absolute right-0 top-[calc(100%+0.5rem)] hidden w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
         <div class="border-b border-slate-100 px-3 py-3 sm:hidden"><strong class="block truncate text-xs text-slate-800">{{.UserName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{.StoreName}} · {{.RoleName}}</small></div>
         <div class="hidden border-b border-slate-100 px-3 py-3 sm:block"><small class="block text-[9px] uppercase tracking-wider text-slate-400">Store aktif</small><strong class="mt-1 block truncate text-xs text-slate-700">{{.StoreName}}</strong></div>
-        <a href="/profile" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:text-orange-700"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>Profile saya</a>
-        <form action="/logout" method="post" class="mt-1 border-t border-slate-100 pt-1"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></svg>Keluar</button></form>
+        <a href="/profile" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:text-orange-700"><i class="fa-solid fa-user size-4" aria-hidden="true"></i>Profile saya</a>
+        <form action="/logout" method="post" class="mt-1 border-t border-slate-100 pt-1"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><i class="fa-solid fa-right-from-bracket size-4" aria-hidden="true"></i>Keluar</button></form>
       </div>
     </div>
   </div>

@@ -2,6 +2,15 @@
 @source "../../templates";
 @source "../../static/js";
 
+/* Font Awesome uses font glyphs, so match the former SVG size utilities. */
+.fa-solid.size-2 { font-size: .5rem; }
+.fa-solid.size-4 { font-size: 1rem; }
+.fa-solid.size-5 { font-size: 1.25rem; }
+.fa-solid.size-6 { font-size: 1.5rem; }
+.fa-solid.size-7 { font-size: 1.75rem; }
+.fa-solid[class~="size-[19px]"] { font-size: 19px; }
+.fa-solid[class~="size-[22px]"] { font-size: 22px; }
+
 /* Compact icon actions for access-management tables. The original text remains
    in the DOM so screen readers still announce each action correctly. */
 [data-edit-role],

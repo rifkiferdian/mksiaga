@@ -350,18 +350,34 @@ document.getElementById("permissionSearch")?.addEventListener("input", (event) =
 
 const profileMenuButton = document.querySelector("[data-profile-menu-button]");
 const profileMenu = document.querySelector("[data-profile-menu]");
+const notificationWrapper = document.querySelector("[data-notification-wrapper]");
+const notificationButton = document.querySelector("[data-notification-button]");
+const notificationMenu = document.querySelector("[data-notification-menu]");
+
+notificationWrapper?.addEventListener("toggle", () => {
+  if (!notificationWrapper.open) return;
+  profileMenu?.classList.add("hidden");
+  profileMenuButton?.setAttribute("aria-expanded", "false");
+});
+
+document.querySelector("[data-notification-read-all]")?.addEventListener("click", () => {
+  document.querySelectorAll("[data-notification-dot]").forEach((dot) => dot.classList.add("hidden"));
+  document.querySelector("[data-notification-badge]")?.classList.add("hidden");
+  showDashboardToast("Semua notifikasi ditandai sudah dibaca.");
+});
 
 profileMenuButton?.addEventListener("click", (event) => {
   event.stopPropagation();
   const opening = profileMenu?.classList.contains("hidden");
   profileMenu?.classList.toggle("hidden", !opening);
   profileMenuButton.setAttribute("aria-expanded", String(opening));
+  notificationWrapper?.removeAttribute("open");
 });
 
 document.addEventListener("click", (event) => {
-  if (!profileMenu || !profileMenuButton) return;
-  if (!profileMenu.contains(event.target) && !profileMenuButton.contains(event.target)) {
+  if (profileMenu && profileMenuButton && !profileMenu.contains(event.target) && !profileMenuButton.contains(event.target)) {
     profileMenu.classList.add("hidden");
     profileMenuButton.setAttribute("aria-expanded", "false");
   }
+  if (notificationWrapper && !notificationWrapper.contains(event.target)) notificationWrapper.removeAttribute("open");
 });
