@@ -106,7 +106,7 @@ func (h *Handler) redirect(c *gin.Context, key, value string) {
 }
 func (h *Handler) internalError(c *gin.Context, err error) {
 	slog.Error("render profile", "error", err)
-	c.String(http.StatusInternalServerError, "Halaman tidak dapat diproses.")
+	c.Redirect(http.StatusSeeOther, "/errors/500")
 }
 func ids(current auth.SessionUser) (uint64, uint64, bool) {
 	userID, e1 := strconv.ParseUint(current.ID, 10, 64)

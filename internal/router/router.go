@@ -14,6 +14,7 @@ import (
 	"mksiaga/internal/auth"
 	"mksiaga/internal/config"
 	"mksiaga/internal/dashboard"
+	"mksiaga/internal/httperror"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/profile"
 	storeManagement "mksiaga/internal/store"
@@ -28,7 +29,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	}
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), httperror.Recovery(cfg.AppName))
 	store := cookie.NewStore([]byte(cfg.Session.Secret))
 	store.Options(sessions.Options{
 		Path:     "/",
@@ -48,6 +49,15 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	r.Static("/vendor/fontawesome/webfonts", filepath.Join(fontAwesomeRoot, "webfonts"))
 	sweetAlertRoot := filepath.Join(filepath.Dir(webRoot), "node_modules", "sweetalert2", "dist")
 	r.StaticFile("/vendor/sweetalert2/sweetalert2.all.min.js", filepath.Join(sweetAlertRoot, "sweetalert2.all.min.js"))
+	r.GET("/errors/403", httperror.Handler(cfg.AppName, "403"))
+	r.GET("/errors/404", httperror.Handler(cfg.AppName, "404"))
+	r.GET("/errors/419", httperror.Handler(cfg.AppName, "419"))
+	r.GET("/errors/500", httperror.Handler(cfg.AppName, "500"))
+	r.GET("/errors/maintenance", httperror.Handler(cfg.AppName, "maintenance"))
+	if cfg.Maintenance.Enabled {
+		r.Use(httperror.Maintenance(cfg.AppName, cfg.Maintenance.Message))
+	}
+	r.Use(auth.RequireCSRF())
 	var authService *auth.Service
 	if db != nil {
 		authService = auth.NewService(auth.NewRepository(db))
@@ -110,5 +120,6 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
+	r.NoRoute(httperror.Handler(cfg.AppName, "404"))
 	return r, nil
 }

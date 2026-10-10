@@ -4,14 +4,21 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
-	AppName  string
-	HTTPAddr string
-	GinMode  string
-	Database Database
-	Session  Session
+	AppName     string
+	HTTPAddr    string
+	GinMode     string
+	Database    Database
+	Session     Session
+	Maintenance Maintenance
+}
+
+type Maintenance struct {
+	Enabled bool
+	Message string
 }
 
 type Session struct {
@@ -37,6 +44,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("SESSION_COOKIE_SECURE must be true or false: %w", err)
 	}
+	maintenanceEnabled, err := strconv.ParseBool(value("MAINTENANCE_MODE", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("MAINTENANCE_MODE must be true or false: %w", err)
+	}
 	sessionSecret := os.Getenv("SESSION_SECRET")
 	if len(sessionSecret) < 32 {
 		return Config{}, fmt.Errorf("SESSION_SECRET must contain at least 32 characters")
@@ -61,6 +72,7 @@ func Load() (Config, error) {
 			Secret:       sessionSecret,
 			CookieSecure: cookieSecure,
 		},
+		Maintenance: Maintenance{Enabled: maintenanceEnabled, Message: strings.TrimSpace(os.Getenv("MAINTENANCE_MESSAGE"))},
 	}
 	return cfg, nil
 }

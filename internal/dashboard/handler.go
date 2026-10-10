@@ -25,13 +25,13 @@ func (h *Handler) Index(c *gin.Context) {
 	menus, err := h.navigation.Menus(c.Request.Context(), user, "dashboard")
 	if err != nil {
 		slog.Error("prepare dashboard navigation", "error", err)
-		c.String(http.StatusInternalServerError, "Navigasi tidak dapat disiapkan.")
+		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
 	csrfToken, err := auth.CSRFToken(c)
 	if err != nil {
 		slog.Error("prepare dashboard csrf", "error", err)
-		c.String(http.StatusInternalServerError, "Halaman tidak dapat disiapkan.")
+		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
 	c.HTML(http.StatusOK, "dashboard/index.html", gin.H{

@@ -63,7 +63,7 @@ func (h *Handler) Logout(c *gin.Context) {
 	}
 	if err := ClearLogin(c, h.cookieSecure); err != nil {
 		slog.Error("clear login session", "error", err)
-		c.String(http.StatusInternalServerError, "Sesi tidak dapat dihapus.")
+		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/login")
@@ -73,7 +73,7 @@ func (h *Handler) renderLogin(c *gin.Context, status int, message, login string)
 	token, err := CSRFToken(c)
 	if err != nil {
 		slog.Error("prepare login csrf", "error", err)
-		c.String(http.StatusInternalServerError, "Halaman login tidak dapat disiapkan.")
+		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
 	c.HTML(status, "auth/login.html", gin.H{

@@ -233,7 +233,7 @@ func (h *Handler) redirect(c *gin.Context, path, key, value string) {
 
 func (h *Handler) internalError(c *gin.Context, err error) {
 	slog.Error("render access management", "error", err)
-	c.String(http.StatusInternalServerError, "Halaman tidak dapat diproses.")
+	c.Redirect(http.StatusSeeOther, "/errors/500")
 }
 
 func routeID(c *gin.Context) (uint64, bool) {

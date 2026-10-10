@@ -199,7 +199,7 @@ func (h *Handler) redirect(c *gin.Context, key, value string) {
 }
 func (h *Handler) internalError(c *gin.Context, err error) {
 	slog.Error("render users", "error", err)
-	c.String(http.StatusInternalServerError, "Halaman tidak dapat diproses.")
+	c.Redirect(http.StatusSeeOther, "/errors/500")
 }
 func initials(name string) string {
 	parts := strings.Fields(name)

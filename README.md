@@ -107,6 +107,17 @@ Setiap halaman mendefinisikan `{{define "content"}}...{{end}}`. Renderer menggab
 
 Login memakai bcrypt, session cookie yang ditandatangani, serta token CSRF pada login dan logout. `SESSION_SECRET` wajib berisi minimal 32 karakter. Gunakan nilai acak yang berbeda pada setiap environment dan jangan memasukkannya ke Git. Set `SESSION_COOKIE_SECURE=true` ketika aplikasi dijalankan melalui HTTPS.
 
+## Mode maintenance
+
+Aktifkan halaman maintenance untuk seluruh aplikasi melalui `.env`:
+
+```env
+MAINTENANCE_MODE=true
+MAINTENANCE_MESSAGE=Pemeliharaan dijadwalkan hingga pukul 22.00 WIB.
+```
+
+Endpoint health check serta aset CSS, JavaScript, dan font tetap dapat diakses saat maintenance aktif. Kembalikan `MAINTENANCE_MODE=false` untuk membuka aplikasi kembali.
+
 Seed akun development ada di `seeds/000001_development_superadmin.sql`, sedangkan permission awal pengelolaan akses ada di `seeds/000002_access_management_permissions.sql`. Route modul akses memakai permission terkait dan role `superadmin` selalu memperoleh akses penuh. Otorisasi untuk fitur bisnis lain, rate limiting login, pergantian store aktif, dan migrasi otomatis belum diimplementasikan. Proxy belum dipercaya; konfigurasikan alamat proxy spesifik jika nanti memakai reverse proxy.
 
 Menu aplikasi didefinisikan terpusat di `internal/navigation/navigation.go`, difilter menggunakan permission pada store aktif, lalu dirender oleh partial `web/templates/partials/app_shell.html`. Dashboard dan seluruh halaman pengelolaan memakai partial yang sama. Tambahkan definisi menu dan permission di sana ketika modul baru tersedia.

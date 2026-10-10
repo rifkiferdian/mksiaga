@@ -63,6 +63,20 @@ func RequireLogin() gin.HandlerFunc {
 	}
 }
 
+func RequireCSRF() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		switch c.Request.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			if !ValidCSRF(c, c.PostForm("csrf_token")) {
+				c.Redirect(http.StatusSeeOther, "/errors/419")
+				c.Abort()
+				return
+			}
+		}
+		c.Next()
+	}
+}
+
 func RequireRole(required string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, ok := CurrentUser(c)
@@ -77,7 +91,7 @@ func RequireRole(required string) gin.HandlerFunc {
 				return
 			}
 		}
-		c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
+		c.Redirect(http.StatusSeeOther, "/errors/403")
 		c.Abort()
 	}
 }
@@ -98,7 +112,7 @@ func RequirePermission(db *sql.DB, permission string) gin.HandlerFunc {
 		}
 		userStoreID, err := strconv.ParseUint(user.UserStoreID, 10, 64)
 		if err != nil {
-			c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
+			c.Redirect(http.StatusSeeOther, "/errors/403")
 			c.Abort()
 			return
 		}
@@ -111,7 +125,7 @@ func RequirePermission(db *sql.DB, permission string) gin.HandlerFunc {
 		)`
 		var allowed bool
 		if err := db.QueryRowContext(c.Request.Context(), query, permission, userStoreID, userStoreID).Scan(&allowed); err != nil || !allowed {
-			c.String(http.StatusForbidden, "Anda tidak memiliki akses ke halaman ini.")
+			c.Redirect(http.StatusSeeOther, "/errors/403")
 			c.Abort()
 			return
 		}
