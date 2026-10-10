@@ -266,35 +266,88 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
+  const pageSize = 25;
+  let currentPage = 1;
+
+  const pagination = document.createElement("nav");
+  pagination.setAttribute("aria-label", "Navigasi halaman tabel");
+  pagination.className = "mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between";
+  pagination.innerHTML = '<p data-pagination-info class="text-center text-xs text-slate-500 sm:text-left"></p><div data-pagination-buttons class="flex flex-wrap items-center justify-center gap-1.5"></div>';
+  table.insertAdjacentElement("afterend", pagination);
+  const paginationInfo = pagination.querySelector("[data-pagination-info]");
+  const paginationButtons = pagination.querySelector("[data-pagination-buttons]");
 
   const existingOptions = new Set([...guard?.options ?? []].map((option) => option.value));
   [...new Set(rows.map((row) => row.dataset.filterGuard).filter((value) => value && !existingOptions.has(value)))]
     .sort((left, right) => left.localeCompare(right))
     .forEach((value) => guard?.add(new Option(value, value)));
 
-  function applyAccessFilter() {
-    const query = search?.value.trim().toLowerCase() ?? "";
-    const selectedGuard = guard?.value ?? "";
-    let visible = 0;
+  function renderPagination(totalItems, totalPages) {
+    const start = totalItems === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+    const end = Math.min(currentPage * pageSize, totalItems);
+    if (paginationInfo) paginationInfo.textContent = `Menampilkan ${start}–${end} dari ${totalItems} data`;
+    if (!paginationButtons) return;
+    paginationButtons.replaceChildren();
 
-    rows.forEach((row) => {
-      const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
-      const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
-      const shown = matchesSearch && matchesGuard;
-      row.classList.toggle("hidden", !shown);
-      if (shown) {
-        visible += 1;
-        const number = row.querySelector("[data-row-number]");
-        if (number) number.textContent = String(visible);
+    const makeButton = (label, page, options = {}) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.disabled = options.disabled ?? false;
+      button.setAttribute("aria-label", options.ariaLabel ?? `Halaman ${page}`);
+      if (options.current) button.setAttribute("aria-current", "page");
+      button.className = options.current
+        ? "grid min-w-9 place-items-center rounded-lg bg-orange-500 px-2.5 py-2 text-xs font-bold text-white shadow-sm"
+        : "grid min-w-9 place-items-center rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 disabled:cursor-not-allowed disabled:opacity-40";
+      button.innerHTML = label;
+      button.addEventListener("click", () => { currentPage = page; applyAccessFilter(false); });
+      return button;
+    };
+
+    paginationButtons.append(makeButton('<i class="fa-solid fa-chevron-left" aria-hidden="true"></i>', Math.max(1, currentPage - 1), { disabled: currentPage === 1, ariaLabel: "Halaman sebelumnya" }));
+    const pages = [];
+    for (let page = 1; page <= totalPages; page += 1) {
+      if (page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1) pages.push(page);
+    }
+    let previousPage = 0;
+    pages.forEach((page) => {
+      if (page - previousPage > 1) {
+        const separator = document.createElement("span");
+        separator.className = "px-1 text-xs text-slate-400";
+        separator.textContent = "…";
+        paginationButtons.append(separator);
       }
+      paginationButtons.append(makeButton(String(page), page, { current: page === currentPage }));
+      previousPage = page;
     });
-
-    if (count) count.textContent = `${visible} data`;
-    empty?.classList.toggle("hidden", visible !== 0 || rows.length === 0);
+    paginationButtons.append(makeButton('<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>', Math.min(totalPages, currentPage + 1), { disabled: currentPage === totalPages, ariaLabel: "Halaman berikutnya" }));
   }
 
-  search?.addEventListener("input", applyAccessFilter);
-  guard?.addEventListener("change", applyAccessFilter);
+  function applyAccessFilter(resetPage = false) {
+    if (resetPage) currentPage = 1;
+    const query = search?.value.trim().toLowerCase() ?? "";
+    const selectedGuard = guard?.value ?? "";
+    const filteredRows = rows.filter((row) => {
+      const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
+      const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
+      return matchesSearch && matchesGuard;
+    });
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    const pageStart = (currentPage - 1) * pageSize;
+    const pageRows = new Set(filteredRows.slice(pageStart, pageStart + pageSize));
+    rows.forEach((row) => row.classList.toggle("hidden", !pageRows.has(row)));
+    filteredRows.forEach((row, index) => {
+      const number = row.querySelector("[data-row-number]");
+      if (number) number.textContent = String(index + 1);
+    });
+
+    if (count) count.textContent = `${filteredRows.length} data`;
+    empty?.classList.toggle("hidden", filteredRows.length !== 0 || rows.length === 0);
+    renderPagination(filteredRows.length, totalPages);
+  }
+
+  search?.addEventListener("input", () => applyAccessFilter(true));
+  guard?.addEventListener("change", () => applyAccessFilter(true));
   applyAccessFilter();
 });
 
