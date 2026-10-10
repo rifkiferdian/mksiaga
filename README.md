@@ -1,136 +1,341 @@
-# MK Siaga
+# MK Siaga Base Project
 
-Starter monolith modular menggunakan Go, Gin, server-rendered HTML, MySQL (`database/sql`), dan Tailwind CLI v4. Folder PHP `mk_sc` tidak diubah.
+MK Siaga adalah base project admin berbasis Go, Gin, server-rendered HTML, MySQL, dan Tailwind CSS. Project ini sudah menyediakan autentikasi, manajemen user multi-store, role dan permission, master store, profil, manajemen sesi perangkat, halaman error, mode maintenance, SweetAlert, Font Awesome, filter tabel, dan pagination.
 
-## Menjalankan aplikasi
+Semua waktu aplikasi menggunakan zona `Asia/Jakarta` (WIB).
 
-Jalankan semua perintah dari root `D:\CODING\mksiaga`. Prasyarat: Go sesuai `go.mod`, Node.js/npm, dan MySQL jika koneksi database diaktifkan.
+## Persyaratan sistem
+
+| Komponen | Versi/keterangan |
+| --- | --- |
+| Go | Sesuai [`go.mod`](go.mod), saat ini Go 1.26 |
+| MySQL/MariaDB | MySQL 8 atau MariaDB 10.4+ |
+| Node.js | Versi LTS yang mendukung npm dan Tailwind CSS 4 |
+| npm | Mengikuti Node.js yang digunakan |
+| Git | Disarankan untuk clone dan pengelolaan versi |
+
+Pada Windows, MySQL dari XAMPP dapat digunakan. Contoh perintah dalam dokumentasi memakai lokasi `C:\xampp8.2.12\mysql\bin`.
+
+## Instalasi
+
+Clone atau salin project, lalu jalankan perintah berikut dari root project:
 
 ```powershell
 Copy-Item .env.example .env
 go mod download
 npm ci
 npm run build:css
+```
+
+Buat `SESSION_SECRET` baru dengan panjang minimal 32 karakter. Contoh membuat secret melalui PowerShell:
+
+```powershell
+$bytes = New-Object byte[] 32
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+$rng.Dispose()
+([BitConverter]::ToString($bytes) -replace '-', '').ToLower()
+```
+
+Salin hasilnya ke `SESSION_SECRET` dalam `.env`.
+
+## Konfigurasi `.env`
+
+Aplikasi membaca `.env` ketika startup. Environment variable sistem memiliki prioritas lebih tinggi daripada isi file tersebut.
+
+```env
+APP_NAME=MK Siaga
+HTTP_ADDR=127.0.0.1:8080
+GIN_MODE=debug
+SESSION_SECRET=ganti-dengan-secret-acak-minimal-32-karakter
+SESSION_COOKIE_SECURE=false
+MAINTENANCE_MODE=false
+MAINTENANCE_MESSAGE=
+
+DB_ENABLED=true
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=mksiaga_dev
+DB_USER=root
+DB_PASSWORD=
+```
+
+| Variable | Keterangan |
+| --- | --- |
+| `APP_NAME` | Nama aplikasi yang ditampilkan pada halaman |
+| `HTTP_ADDR` | Alamat dan port HTTP server |
+| `GIN_MODE` | `debug`, `release`, atau `test` |
+| `SESSION_SECRET` | Kunci penandatangan cookie, minimal 32 karakter |
+| `SESSION_COOKIE_SECURE` | Gunakan `true` jika aplikasi berjalan melalui HTTPS |
+| `MAINTENANCE_MODE` | Menampilkan halaman maintenance jika bernilai `true` |
+| `MAINTENANCE_MESSAGE` | Pesan tambahan pada halaman maintenance |
+| `DB_ENABLED` | Mengaktifkan koneksi database |
+| `DB_HOST` | Host MySQL/MariaDB |
+| `DB_PORT` | Port MySQL/MariaDB |
+| `DB_NAME` | Nama database aplikasi |
+| `DB_USER` | Username database |
+| `DB_PASSWORD` | Password database |
+
+Jangan commit `.env`. Gunakan secret dan kredensial berbeda untuk setiap environment.
+
+## Database, migrasi, dan seed
+
+Project tidak menjalankan migrasi secara otomatis. Ada dua cara menyiapkan database.
+
+### Opsi 1: SQL starter
+
+Opsi ini paling cepat untuk project baru karena schema dan seluruh data awal sudah digabungkan dalam [`database/mksiaga_starter.sql`](database/mksiaga_starter.sql).
+
+```powershell
+& 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root -e "CREATE DATABASE mksiaga_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+Get-Content -Raw database/mksiaga_starter.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+```
+
+Data awal menyediakan akun development berikut:
+
+```text
+Username: admin
+Password: qweqwe
+```
+
+Ganti password segera jika database digunakan di luar komputer development. Data sesi perangkat tidak disertakan dalam SQL starter.
+
+### Opsi 2: migrasi dan seed terpisah
+
+Jalankan migrasi sesuai nomor urut:
+
+```powershell
+Get-Content -Raw migrations/000001_create_identity_and_access.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000002_create_user_sessions.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+```
+
+Kemudian jalankan seed sesuai nomor urut:
+
+```powershell
+Get-ChildItem seeds/*.sql | Sort-Object Name | ForEach-Object {
+  Get-Content -Raw $_.FullName |
+    & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+}
+```
+
+Seed development bersifat idempotent. Menjalankan ulang seed superadmin akan mengembalikan password akun admin ke password development. Detail tiap migrasi tersedia di [`migrations/README.md`](migrations/README.md).
+
+Untuk membuat perubahan schema baru:
+
+1. Buat pasangan file bernomor berikutnya, misalnya `000003_create_incidents.up.sql` dan `000003_create_incidents.down.sql`.
+2. Tulis perubahan maju pada file `.up.sql` dan rollback pada `.down.sql`.
+3. Uji keduanya pada database development kosong.
+4. Tambahkan seed terpisah jika modul memerlukan data awal.
+
+## Menjalankan aplikasi
+
+Pastikan `.env` dan database sudah siap, lalu jalankan:
+
+```powershell
 go run ./cmd/web
 ```
 
-Buka http://127.0.0.1:8080. Salin `.env.example` hanya saat `.env` belum ada. Environment sistem mengalahkan nilai `.env`.
+Buka [http://127.0.0.1:8080](http://127.0.0.1:8080). Endpoint pemeriksaan aplikasi:
 
-Untuk mengembangkan CSS, jalankan `npm run dev:css` di terminal kedua. Ubah `web/assets/css/input.css` atau class template; jangan edit hasil `web/static/css/app.css`.
+| Endpoint | Fungsi |
+| --- | --- |
+| `GET /healthz` | Memastikan proses HTTP hidup |
+| `GET /readyz` | Memastikan aplikasi dan database siap |
 
-## Development dengan Air
-
-[Air](https://github.com/air-verse/air) otomatis melakukan build dan restart aplikasi saat kode Go, template HTML, `.env`, `go.mod`, atau `go.sum` berubah. Konfigurasi proyek ada di `.air.toml`, dengan executable `.exe` untuk Windows.
-
-Instal sekali (versi yang dipakai proyek):
-
-```powershell
-go install github.com/air-verse/air@v1.67.4
-```
-
-Air versi ini membutuhkan Go 1.26; Go dapat mengunduh toolchain tersebut otomatis saat instalasi. Versi Go aplikasi pada `go.mod` tidak perlu diubah.
-
-Terminal pertama, dari root proyek:
-
-```powershell
-air -c .air.toml
-```
-
-Terminal kedua:
+Untuk mengembangkan CSS:
 
 ```powershell
 npm run dev:css
 ```
 
-Buka http://127.0.0.1:8080. Hentikan proses `go run` sebelumnya jika masih menggunakan port tersebut. Simpan perubahan untuk memicu restart otomatis; refresh browser untuk melihat hasilnya. Air tidak mengaktifkan refresh browser otomatis pada konfigurasi ini. Tekan Ctrl+C untuk menghentikan Air.
-
-Jika perintah `air` belum dikenali, jalankan executable langsung (untuk instalasi dengan GOBIN default):
+Untuk rebuild CSS production:
 
 ```powershell
-& "$(go env GOPATH)\bin\air.exe" -c .air.toml
+npm run build:css
 ```
 
-Jika memakai GOBIN khusus, gunakan `air.exe` dari direktori `go env GOBIN`. Output build Air berada di `tmp/` yang sudah diabaikan Git. File static, node_modules, dan uploads tidak memicu build Go.
+Project juga menyediakan `.air.toml` untuk restart otomatis menggunakan Air:
 
-## MySQL
+```powershell
+go install github.com/air-verse/air@v1.67.4
+air -c .air.toml
+```
 
-Default `DB_ENABLED=false` memungkinkan halaman awal dijalankan tanpa database. Untuk mengaktifkannya:
+Jalankan `npm run dev:css` di terminal lain saat mengubah class atau sumber Tailwind.
 
-1. Jalankan MySQL, misalnya dari XAMPP.
-2. Buat database development terpisah bernama `mksiaga_dev` menggunakan charset `utf8mb4`.
-3. Atur `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, dan `DB_PASSWORD` di `.env`, lalu ubah `DB_ENABLED=true`.
-4. Restart aplikasi. Startup akan gagal jika koneksi yang diaktifkan tidak berhasil.
+## Membuat modul baru
 
-Tidak ada skema atau migrasi yang dijalankan otomatis. Skema PHP lama belum ditinjau; folder `migrations` disediakan untuk perubahan SQL setelah pemetaan data. Jangan arahkan pengembangan ke database produksi.
-
-## Struktur dan tanggung jawab
+Gunakan modul yang ada seperti `internal/store` sebagai pola. Misalnya untuk modul `incident`:
 
 ```text
-cmd/web/                 Entry point, dependency wiring, graceful shutdown
-internal/config/         Konfigurasi environment
-internal/database/       Koneksi dan connection pool MySQL
-internal/router/         Route Gin dan pemasangan middleware
-internal/dashboard/      Handler halaman awal
-internal/view/           Renderer template per halaman
-internal/middleware/     Tempat middleware aplikasi berikutnya
-internal/auth/           Tempat modul autentikasi berikutnya
-internal/user/           Tempat modul pengguna berikutnya
-internal/pengaduan/      Calon modul; sesuaikan kebutuhan aplikasi lama
-web/templates/layouts/   Kerangka HTML
-web/templates/partials/  Komponen HTML bersama
-web/templates/<fitur>/   Halaman tiap fitur
-web/assets/css/          Sumber Tailwind
-web/static/              CSS hasil build, JS, dan gambar publik
-migrations/              Tempat migrasi SQL
-storage/uploads/         File unggahan privat, tidak dilayani sebagai static
+internal/incident/
+├── handler.go
+├── model.go
+├── repository.go
+└── service.go
+
+web/templates/incident/
+└── index.html
 ```
 
-Modul nyata pertama adalah dashboard. Folder auth, user, pengaduan, dan middleware berisi petunjuk, bukan implementasi semu. Tambahkan `model.go`, `handler.go`, `repository.go`, serta `service.go` sesuai kebutuhan fitur.
+Tanggung jawab setiap bagian:
 
-Handler menangani HTTP dan validasi format. Service menangani aturan bisnis tanpa `gin.Context`. Repository menangani SQL dengan parameter binding dan `context.Context`. Dependency diberikan melalui constructor; hindari koneksi global dan interface yang belum diperlukan.
-
-Setiap halaman mendefinisikan `{{define "content"}}...{{end}}`. Renderer menggabungkan layout dan partials secara terpisah untuk setiap halaman, sehingga blok halaman berbeda tidak saling menimpa. Nama render contohnya `dashboard/index.html`.
-
-## Endpoint awal
-
-| Endpoint | Perilaku |
+| Bagian | Tanggung jawab |
 | --- | --- |
-| `GET /login` | Form login |
-| `POST /login` | Verifikasi akun dan membuat session |
-| `GET /` | Dashboard; memerlukan login |
-| `POST /logout` | Menghapus session; memerlukan login dan token CSRF |
-| `GET /settings/roles` | Pengelolaan role dan assignment permission |
-| `GET /settings/permissions` | Pengelolaan permission |
-| `GET /healthz` | HTTP 200 ketika proses HTTP hidup |
-| `GET /readyz` | HTTP 200 jika MySQL dapat dijangkau; HTTP 503 jika nonaktif/tidak tersedia |
-| `GET /static/*` | Aset publik |
+| `model.go` | Struct input, entity, dan data tampilan |
+| `repository.go` | Query database dengan parameter binding dan `context.Context` |
+| `service.go` | Validasi dan aturan bisnis |
+| `handler.go` | Request HTTP, response, redirect, dan render template |
+| template | Tampilan server-rendered dan komponen form/tabel |
 
-Login memakai bcrypt, session cookie yang ditandatangani, serta token CSRF pada login dan logout. `SESSION_SECRET` wajib berisi minimal 32 karakter. Gunakan nilai acak yang berbeda pada setiap environment dan jangan memasukkannya ke Git. Set `SESSION_COOKIE_SECURE=true` ketika aplikasi dijalankan melalui HTTPS.
+Langkah menambahkan modul:
 
-## Mode maintenance
+1. Buat migrasi schema dan seed permission, misalnya `incidents.view`, `incidents.create`, `incidents.update`, dan `incidents.delete`.
+2. Buat package modul dengan constructor repository, service, dan handler.
+3. Daftarkan dependency dan route di [`internal/router/router.go`](internal/router/router.go).
+4. Lindungi route memakai `auth.RequirePermission(db, "incidents.view")` atau permission sesuai operasinya.
+5. Tambahkan menu dan permission-nya ke [`internal/navigation/navigation.go`](internal/navigation/navigation.go).
+6. Buat template di `web/templates/<modul>` dengan blok `{{define "content"}}` dan gunakan partial shell admin.
+7. Tambahkan JavaScript bersama di `web/static/js/app.js` hanya jika interaksi tidak dapat ditangani HTML biasa.
+8. Jalankan format, test, vet, pemeriksaan JavaScript, dan build CSS.
 
-Aktifkan halaman maintenance untuk seluruh aplikasi melalui `.env`:
+```powershell
+gofmt -w internal/incident/*.go
+go test ./...
+go vet ./...
+node --check web/static/js/app.js
+npm run build:css
+```
+
+## Struktur folder
+
+```text
+cmd/web/                    Entry point dan HTTP server
+database/                   SQL starter siap import
+internal/access/            Modul role dan permission
+internal/auth/              Login, cookie session, CSRF, middleware akses
+internal/config/            Pembacaan dan validasi environment
+internal/dashboard/         Dashboard admin
+internal/database/          Koneksi dan pool MySQL
+internal/httperror/         Halaman 403, 404, 419, 500, maintenance
+internal/navigation/        Definisi menu dan filter permission
+internal/profile/           Profil dan perubahan password
+internal/router/            Registrasi route dan dependency wiring
+internal/sessionmanagement/ Daftar dan pencabutan sesi perangkat
+internal/store/             Master data store
+internal/user/              Manajemen user dan assignment store
+internal/view/              Renderer layout, partial, dan template
+migrations/                 Migrasi schema naik/turun
+seeds/                      Data awal development
+storage/uploads/            Penyimpanan unggahan privat
+web/assets/css/             Sumber Tailwind CSS
+web/static/                 CSS hasil build dan JavaScript publik
+web/templates/              Layout, partial, dan halaman HTML
+```
+
+Binary Go belum meng-embed template dan aset. Folder `web/templates`, `web/static`, serta dependency frontend yang disajikan dari `node_modules` harus tersedia di working directory aplikasi.
+
+## Sistem role dan permission
+
+Hak akses ditempelkan pada hubungan user dan store, bukan langsung pada user. Karena itu satu user dapat terdaftar pada beberapa store dan memiliki role berbeda di setiap store.
+
+```text
+users --< user_stores >-- stores
+              |
+              +--< user_store_roles >-- roles --< role_permissions >-- permissions
+              |
+              +--< user_store_permissions >-------------------------- permissions
+```
+
+Alur pemeriksaan akses:
+
+1. Login memilih assignment store default yang aktif.
+2. Identitas `user_store_id`, store aktif, dan nama role disimpan dalam session.
+3. `RequirePermission` memeriksa permission langsung pada `user_store_permissions` dan permission dari role.
+4. Role `superadmin` memperoleh akses penuh sebagai bypass.
+5. Navigasi hanya menampilkan menu yang diizinkan untuk store aktif.
+
+Gunakan pola nama permission `<modul>.<aksi>`, misalnya `stores.view` atau `users.update`. Route tetap harus memakai middleware permission meskipun menu sudah disembunyikan, karena menu bukan pengaman request.
+
+Session perangkat disimpan pada tabel `user_sessions`. Sesi biasa berlaku 12 jam dan sesi dengan pilihan **Ingat saya** berlaku 30 hari. Pengguna dapat mencabut sesi perangkat lain melalui menu **Profil → Perangkat & sesi**.
+
+## Proses deployment
+
+### 1. Siapkan environment
+
+- Sediakan server dengan Go atau build binary di CI/build machine.
+- Sediakan MySQL/MariaDB dan database khusus aplikasi.
+- Gunakan user database dengan hak akses hanya pada database aplikasi.
+- Siapkan HTTPS melalui reverse proxy seperti Nginx, Caddy, atau IIS.
+
+### 2. Backup dan update database
+
+Backup database sebelum menjalankan migrasi:
+
+```powershell
+& 'C:\xampp8.2.12\mysql\bin\mysqldump.exe' -u root -p --result-file=backup.sql nama_database
+```
+
+Jalankan hanya migrasi `.up.sql` yang belum pernah diterapkan. Untuk instalasi baru, gunakan SQL starter atau seluruh migrasi dan seed secara berurutan.
+
+### 3. Build aplikasi
+
+```powershell
+npm ci
+npm run build:css
+go test ./...
+go vet ./...
+go build -trimpath -ldflags="-s -w" -o bin/mksiaga.exe ./cmd/web
+```
+
+Untuk Linux, ubah output menjadi `bin/mksiaga`.
+
+### 4. Siapkan konfigurasi production
+
+Gunakan nilai berikut sebagai dasar:
+
+```env
+GIN_MODE=release
+SESSION_COOKIE_SECURE=true
+DB_ENABLED=true
+MAINTENANCE_MODE=false
+```
+
+Gunakan `SESSION_SECRET` acak khusus production, password database yang kuat, dan jangan menyalin `.env` development. Pastikan timezone sistem atau container mendukung `Asia/Jakarta`.
+
+### 5. Salin artefak
+
+Salin komponen berikut ke server:
+
+- Binary aplikasi.
+- Folder `web/templates`.
+- Folder `web/static`.
+- Folder `node_modules/@fortawesome/fontawesome-free`.
+- Folder `node_modules/sweetalert2`.
+- Folder `storage` jika aplikasi menyimpan unggahan.
+- File `.env` production.
+
+Jalankan binary dari root deployment agar path relatif template dan aset tetap ditemukan. Gunakan service manager seperti systemd, Supervisor, NSSM, atau Windows Service untuk restart otomatis.
+
+### 6. Verifikasi deployment
+
+1. Periksa `/healthz` dan `/readyz`.
+2. Login memakai akun administrator.
+3. Ganti password akun awal.
+4. Periksa halaman User, Role, Permission, Store, Profil, dan Manajemen sesi.
+5. Pastikan cookie memiliki atribut `Secure` melalui HTTPS.
+6. Periksa log aplikasi dan reverse proxy.
+
+Mode maintenance dapat diaktifkan saat deployment dengan:
 
 ```env
 MAINTENANCE_MODE=true
-MAINTENANCE_MESSAGE=Pemeliharaan dijadwalkan hingga pukul 22.00 WIB.
+MAINTENANCE_MESSAGE=Pembaruan sistem sedang berlangsung. Silakan coba kembali beberapa saat lagi.
 ```
 
-Endpoint health check serta aset CSS, JavaScript, dan font tetap dapat diakses saat maintenance aktif. Kembalikan `MAINTENANCE_MODE=false` untuk membuka aplikasi kembali.
-
-Seed akun development ada di `seeds/000001_development_superadmin.sql`, sedangkan permission awal pengelolaan akses ada di `seeds/000002_access_management_permissions.sql`. Route modul akses memakai permission terkait dan role `superadmin` selalu memperoleh akses penuh. Otorisasi untuk fitur bisnis lain, rate limiting login, pergantian store aktif, dan migrasi otomatis belum diimplementasikan. Proxy belum dipercaya; konfigurasikan alamat proxy spesifik jika nanti memakai reverse proxy.
-
-Menu aplikasi didefinisikan terpusat di `internal/navigation/navigation.go`, difilter menggunakan permission pada store aktif, lalu dirender oleh partial `web/templates/partials/app_shell.html`. Dashboard dan seluruh halaman pengelolaan memakai partial yang sama. Tambahkan definisi menu dan permission di sana ketika modul baru tersedia.
-
-## Pemeriksaan dan build
-
-```powershell
-go test ./...
-go vet ./...
-npm run build:css
-go build -o bin/mksiaga.exe ./cmd/web
-```
-
-Jalankan `./bin/mksiaga.exe` dari root proyek. Deployment perlu membawa folder `web/templates` dan `web/static` bersama binary karena aset belum di-embed. Node.js diperlukan hanya pada tahap build CSS.
-
-Referensi: [Gin](https://gin-gonic.com/en/docs/quickstart/) dan [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli).
+Endpoint health check dan aset statis tetap tersedia selama mode maintenance.
