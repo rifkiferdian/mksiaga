@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 var ErrUserNotFound = errors.New("user not found")
@@ -71,4 +72,17 @@ func (r *Repository) RecordLogin(ctx context.Context, userID uint64) error {
 		return fmt.Errorf("record login: %w", err)
 	}
 	return nil
+}
+
+func (r *Repository) CreateSession(ctx context.Context, id string, userID, userStoreID uint64, ipAddress, userAgent string, expiresAt time.Time) error {
+	_, err := r.db.ExecContext(ctx, `INSERT INTO user_sessions(id,user_id,user_store_id,ip_address,user_agent,expires_at) VALUES(?,?,?,?,?,?)`, id, userID, userStoreID, ipAddress, userAgent, expiresAt)
+	return err
+}
+
+func (r *Repository) RevokeSession(ctx context.Context, id string) error {
+	if id == "" {
+		return nil
+	}
+	_, err := r.db.ExecContext(ctx, `UPDATE user_sessions SET revoked_at=CURRENT_TIMESTAMP(6) WHERE id=? AND revoked_at IS NULL`, id)
+	return err
 }

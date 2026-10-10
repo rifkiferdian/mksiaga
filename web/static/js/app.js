@@ -7,8 +7,9 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     input.type = visible ? "password" : "text";
     button.setAttribute("aria-pressed", String(!visible));
     button.setAttribute("aria-label", visible ? "Tampilkan password" : "Sembunyikan password");
-    button.querySelector("[data-eye-open]")?.classList.toggle("hidden", !visible);
-    button.querySelector("[data-eye-closed]")?.classList.toggle("hidden", visible);
+    const icon = button.querySelector("[data-password-icon]");
+    icon?.classList.toggle("fa-eye", visible);
+    icon?.classList.toggle("fa-eye-slash", !visible);
   });
 });
 

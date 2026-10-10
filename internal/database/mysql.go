@@ -19,6 +19,11 @@ func Open(ctx context.Context, cfg config.Database) (*sql.DB, error) {
 	dsn.Addr = net.JoinHostPort(cfg.Host, cfg.Port)
 	dsn.DBName = cfg.Name
 	dsn.ParseTime = true
+	jakarta, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		return nil, fmt.Errorf("load Jakarta timezone: %w", err)
+	}
+	dsn.Loc = jakarta
 	dsn.Timeout = 5 * time.Second
 	dsn.ReadTimeout = 5 * time.Second
 	dsn.WriteTimeout = 5 * time.Second

@@ -19,6 +19,17 @@ users --< user_stores >-- stores
 
 `user_store_permissions` dipakai untuk permission langsung sebagai pengecualian di luar role. Nilai role seperti `security`, `admin`, dan permission aplikasi dibuat melalui seed atau modul administrasi pada tahap berikutnya.
 
+## Migrasi 000002
+
+`000002_create_user_sessions.up.sql` menambahkan pencatatan sesi login per perangkat. Data ini dipakai untuk menampilkan waktu login, IP, browser/perangkat, batas waktu sesi, dan mengeluarkan perangkat lain dari halaman **Profil > Perangkat & sesi**.
+
+```powershell
+Get-Content -Raw migrations/000002_create_user_sessions.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+```
+
+Setelah migrasi pertama kali diterapkan, sesi lama perlu login ulang agar tercatat sebagai perangkat aktif.
+
 ## Seed development
 
 `seeds/000001_development_superadmin.sql` membuat akun lokal `admin`, role `superadmin`, dan `Store Pusat`. Seed bersifat idempotent sehingga aman dijalankan ulang, tetapi akan mengembalikan password akun tersebut ke nilai development yang tercantum di dalam file.

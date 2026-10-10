@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -48,7 +49,18 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	if err := SaveLogin(c, user, c.PostForm("remember") == "1", h.cookieSecure); err != nil {
+	remember := c.PostForm("remember") == "1"
+	sessionID, err := NewSessionID()
+	if err == nil {
+		err = h.service.CreateSession(c.Request.Context(), sessionID, user, clipped(c.ClientIP(), 45), clipped(c.Request.UserAgent(), 512), time.Now().Add(SessionLifetime(remember)))
+	}
+	if err != nil {
+		slog.Error("create tracked login session", "error", err)
+		h.renderLogin(c, http.StatusInternalServerError, "Sesi login tidak dapat dibuat. Silakan coba kembali.", login)
+		return
+	}
+	if err := SaveLogin(c, user, sessionID, remember, h.cookieSecure); err != nil {
+		_ = h.service.RevokeSession(c.Request.Context(), sessionID)
 		slog.Error("save login session", "error", err)
 		h.renderLogin(c, http.StatusInternalServerError, "Sesi login tidak dapat dibuat. Silakan coba kembali.", login)
 		return
@@ -61,12 +73,22 @@ func (h *Handler) Logout(c *gin.Context) {
 		c.String(http.StatusBadRequest, "Permintaan tidak valid.")
 		return
 	}
+	if h.service != nil {
+		_ = h.service.RevokeSession(c.Request.Context(), CurrentSessionID(c))
+	}
 	if err := ClearLogin(c, h.cookieSecure); err != nil {
 		slog.Error("clear login session", "error", err)
 		c.Redirect(http.StatusSeeOther, "/errors/500")
 		return
 	}
 	c.Redirect(http.StatusSeeOther, "/login")
+}
+
+func clipped(value string, limit int) string {
+	if len(value) > limit {
+		return value[:limit]
+	}
+	return value
 }
 
 func (h *Handler) renderLogin(c *gin.Context, status int, message, login string) {

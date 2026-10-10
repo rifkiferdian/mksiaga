@@ -17,6 +17,7 @@ import (
 	"mksiaga/internal/httperror"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/profile"
+	"mksiaga/internal/sessionmanagement"
 	storeManagement "mksiaga/internal/store"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
@@ -66,7 +67,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	r.GET("/login", authHandler.ShowLogin)
 	r.POST("/login", authHandler.Login)
 	authorized := r.Group("/")
-	authorized.Use(auth.RequireLogin())
+	authorized.Use(auth.RequireLogin(db))
 	var navigationService *navigation.Service
 	if db != nil {
 		navigationService = navigation.NewService(db)
@@ -77,10 +78,14 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
+		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
 		authorized.POST("/profile/password", profileHandler.UpdatePassword)
+		authorized.GET("/profile/sessions", sessionHandler.Index)
+		authorized.POST("/profile/sessions/revoke-others", sessionHandler.RevokeOthers)
+		authorized.POST("/profile/sessions/:id/revoke", sessionHandler.Revoke)
 		settings := authorized.Group("/settings")
 		settings.GET("/users", auth.RequirePermission(db, "users.view"), userHandler.Index)
 		settings.POST("/users", auth.RequirePermission(db, "users.create"), userHandler.Create)

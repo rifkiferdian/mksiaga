@@ -83,6 +83,7 @@
         <div class="border-b border-slate-100 px-3 py-3 sm:hidden"><strong class="block truncate text-xs text-slate-800">{{.UserName}}</strong><small class="mt-1 block truncate text-[10px] text-slate-400">{{.StoreName}} · {{.RoleName}}</small></div>
         <div class="hidden border-b border-slate-100 px-3 py-3 sm:block"><small class="block text-[9px] uppercase tracking-wider text-slate-400">Store aktif</small><strong class="mt-1 block truncate text-xs text-slate-700">{{.StoreName}}</strong></div>
         <a href="/profile" class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:text-orange-700"><i class="fa-solid fa-user size-4" aria-hidden="true"></i>Profile saya</a>
+        <a href="/profile/sessions" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-slate-600 hover:bg-orange-50 hover:text-orange-700"><i class="fa-solid fa-laptop size-4" aria-hidden="true"></i>Perangkat &amp; sesi</a>
         <form action="/logout" method="post" class="mt-1 border-t border-slate-100 pt-1"><input type="hidden" name="csrf_token" value="{{.CSRFToken}}"><button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-red-600 hover:bg-red-50"><i class="fa-solid fa-right-from-bracket size-4" aria-hidden="true"></i>Keluar</button></form>
       </div>
     </div>

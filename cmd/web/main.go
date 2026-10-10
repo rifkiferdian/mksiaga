@@ -26,6 +26,11 @@ func main() {
 }
 
 func run() error {
+	jakarta, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		return fmt.Errorf("load Jakarta timezone: %w", err)
+	}
+	time.Local = jakarta
 	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("load .env: %w", err)
 	}

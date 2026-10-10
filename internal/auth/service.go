@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,6 +14,13 @@ var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type Service struct {
 	repository *Repository
+}
+
+func (s *Service) CreateSession(ctx context.Context, id string, user User, ipAddress, userAgent string, expiresAt time.Time) error {
+	return s.repository.CreateSession(ctx, id, user.ID, user.UserStoreID, ipAddress, userAgent, expiresAt)
+}
+func (s *Service) RevokeSession(ctx context.Context, id string) error {
+	return s.repository.RevokeSession(ctx, id)
 }
 
 func NewService(repository *Repository) *Service {

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ const (
 	sessionStoreName   = "store_name"
 	sessionRoleName    = "role_name"
 	sessionCSRFToken   = "csrf_token"
+	sessionID          = "session_id"
 	defaultSessionAge  = 12 * 60 * 60
 	rememberedAge      = 30 * 24 * 60 * 60
 )
@@ -52,12 +54,25 @@ func CurrentUser(c *gin.Context) (SessionUser, bool) {
 	}, true
 }
 
-func RequireLogin() gin.HandlerFunc {
+func RequireLogin(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, ok := CurrentUser(c); !ok {
 			c.Redirect(http.StatusSeeOther, "/login")
 			c.Abort()
 			return
+		}
+		if db != nil {
+			id := CurrentSessionID(c)
+			var active bool
+			if id == "" || db.QueryRowContext(c.Request.Context(), `SELECT EXISTS(SELECT 1 FROM user_sessions WHERE id=? AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP(6))`, id).Scan(&active) != nil || !active {
+				session := sessions.Default(c)
+				session.Clear()
+				_ = session.Save()
+				c.Redirect(http.StatusSeeOther, "/login")
+				c.Abort()
+				return
+			}
+			_, _ = db.ExecContext(c.Request.Context(), `UPDATE user_sessions SET last_seen_at=CURRENT_TIMESTAMP(6) WHERE id=? AND last_seen_at<CURRENT_TIMESTAMP(6)-INTERVAL 1 MINUTE`, id)
 		}
 		c.Next()
 	}
@@ -157,7 +172,7 @@ func ValidCSRF(c *gin.Context, submitted string) bool {
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(submitted)) == 1
 }
 
-func SaveLogin(c *gin.Context, user User, remember, secure bool) error {
+func SaveLogin(c *gin.Context, user User, id string, remember, secure bool) error {
 	session := sessions.Default(c)
 	session.Clear()
 	maxAge := defaultSessionAge
@@ -171,12 +186,22 @@ func SaveLogin(c *gin.Context, user User, remember, secure bool) error {
 	session.Set(sessionUserStoreID, strconv.FormatUint(user.UserStoreID, 10))
 	session.Set(sessionStoreName, user.StoreName)
 	session.Set(sessionRoleName, user.RoleName)
+	session.Set(sessionID, id)
 	token, err := newToken()
 	if err != nil {
 		return err
 	}
 	session.Set(sessionCSRFToken, token)
 	return session.Save()
+}
+
+func CurrentSessionID(c *gin.Context) string { return stringValue(sessions.Default(c).Get(sessionID)) }
+func NewSessionID() (string, error)          { return newToken() }
+func SessionLifetime(remember bool) time.Duration {
+	if remember {
+		return rememberedAge * time.Second
+	}
+	return defaultSessionAge * time.Second
 }
 
 func ClearLogin(c *gin.Context, secure bool) error {
