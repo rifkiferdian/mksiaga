@@ -96,3 +96,13 @@ form[data-confirm] > button:disabled {
   cursor: not-allowed;
   opacity: .4;
 }
+
+/* Keep the sidebar usable on short screens without showing a nested scrollbar. */
+.sidebar-navigation {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-navigation::-webkit-scrollbar {
+  display: none;
+}
