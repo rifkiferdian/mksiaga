@@ -84,7 +84,7 @@ Project tidak menjalankan migrasi secara otomatis. Ada dua cara menyiapkan datab
 
 ### Opsi 1: SQL starter
 
-Opsi ini paling cepat untuk project baru karena schema dan seluruh data awal sudah digabungkan dalam [`database/mksiaga_starter.sql`](database/mksiaga_starter.sql).
+[`database/mksiaga_starter.sql`](database/mksiaga_starter.sql) menyediakan schema dasar dan data awal. Setelah impor, terapkan migrasi 000003 sampai 000006, lalu seed mulai 000006 untuk modul master CCTV terbaru. Jangan mengimpor starter ke database yang sudah digunakan.
 
 ```powershell
 & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root -e "CREATE DATABASE mksiaga_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -112,6 +112,18 @@ Get-Content -Raw migrations/000001_create_identity_and_access.up.sql |
 
 Get-Content -Raw migrations/000002_create_user_sessions.up.sql |
   & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000003_create_cctv_masters.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000004_scope_shift_checklist_to_store.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000005_make_checklist_global.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000006_make_shift_global.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
 ```
 
 Kemudian jalankan seed sesuai nomor urut:
@@ -127,7 +139,7 @@ Seed development bersifat idempotent. Menjalankan ulang seed superadmin akan men
 
 Untuk membuat perubahan schema baru:
 
-1. Buat pasangan file bernomor berikutnya, misalnya `000003_create_incidents.up.sql` dan `000003_create_incidents.down.sql`.
+1. Buat pasangan file bernomor berikutnya, misalnya `000006_create_incidents.up.sql` dan `000006_create_incidents.down.sql`.
 2. Tulis perubahan maju pada file `.up.sql` dan rollback pada `.down.sql`.
 3. Uji keduanya pada database development kosong.
 4. Tambahkan seed terpisah jika modul memerlukan data awal.

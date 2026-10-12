@@ -36,6 +36,12 @@ type definition struct {
 var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Master Data", parent: "master", key: "stores", label: "Store", url: "/master/stores", permission: "stores.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "areas", label: "Area", url: "/master/areas", permission: "areas.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "cameras", label: "Kamera", url: "/master/cameras", permission: "cameras.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "shifts", label: "Shift", url: "/master/shifts", permission: "shifts.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "checklists", label: "Checklist", url: "/master/checklists", permission: "checklists.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "incident-types", label: "Jenis Insiden", url: "/master/incident-types", permission: "incident-types.view"},
+	{group: "Master Aplikasi", parent: "appmaster", key: "actions", label: "Tindakan", url: "/master/actions", permission: "actions.view"},
 	{group: "Pengelolaan", parent: "access", key: "users", label: "User", url: "/settings/users", permission: "users.view"},
 	{group: "Pengelolaan", parent: "access", key: "roles", label: "Role", url: "/settings/roles", permission: "roles.view"},
 	{group: "Pengelolaan", parent: "access", key: "permissions", label: "Permission", url: "/settings/permissions", permission: "permissions.view"},
@@ -121,6 +127,19 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 			open = open || item.Active
 		}
 		groups[index].Items = append(groups[index].Items, Item{Key: "master", Label: "Master Data", Open: open, Active: open, Children: masterItems})
+	}
+	if appMasterItems := children["appmaster"]; len(appMasterItems) > 0 {
+		index, exists := indexes["Master Aplikasi"]
+		if !exists {
+			index = len(groups)
+			indexes["Master Aplikasi"] = index
+			groups = append(groups, Group{Label: "Master Aplikasi"})
+		}
+		open := false
+		for _, item := range appMasterItems {
+			open = open || item.Active
+		}
+		groups[index].Items = append(groups[index].Items, Item{Key: "appmaster", Label: "Master Aplikasi", Open: open, Active: open, Children: appMasterItems})
 	}
 	return groups, nil
 }

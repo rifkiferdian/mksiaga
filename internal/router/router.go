@@ -11,14 +11,21 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"mksiaga/internal/access"
+	actionManagement "mksiaga/internal/action"
+	areaManagement "mksiaga/internal/area"
 	"mksiaga/internal/auth"
+	cameraManagement "mksiaga/internal/camera"
+	checklistManagement "mksiaga/internal/checklist"
 	"mksiaga/internal/config"
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/httperror"
+	incidentTypeManagement "mksiaga/internal/incidenttype"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/profile"
 	"mksiaga/internal/sessionmanagement"
+	shiftManagement "mksiaga/internal/shift"
 	storeManagement "mksiaga/internal/store"
+	"mksiaga/internal/storescope"
 	userManagement "mksiaga/internal/user"
 	"mksiaga/internal/view"
 )
@@ -76,9 +83,15 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
+		actionHandler := actionManagement.NewHandler(cfg.AppName, actionManagement.NewService(actionManagement.NewRepository(db)), navigationService)
+		areaHandler := areaManagement.NewHandler(cfg.AppName, areaManagement.NewService(areaManagement.NewRepository(db)), navigationService)
+		cameraHandler := cameraManagement.NewHandler(cfg.AppName, cameraManagement.NewService(cameraManagement.NewRepository(db)), navigationService)
+		checklistHandler := checklistManagement.NewHandler(cfg.AppName, checklistManagement.NewService(checklistManagement.NewRepository(db)), navigationService)
+		incidentTypeHandler := incidentTypeManagement.NewHandler(cfg.AppName, incidentTypeManagement.NewService(incidentTypeManagement.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
+		shiftHandler := shiftManagement.NewHandler(cfg.AppName, shiftManagement.NewService(shiftManagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
@@ -104,10 +117,35 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		settings.POST("/permissions/:id/update", auth.RequirePermission(db, "permissions.update"), accessHandler.UpdatePermission)
 		settings.POST("/permissions/:id/delete", auth.RequirePermission(db, "permissions.delete"), accessHandler.DeletePermission)
 		master := authorized.Group("/master")
+		master.Use(storescope.Middleware(db))
 		master.GET("/stores", auth.RequirePermission(db, "stores.view"), storeHandler.Index)
 		master.POST("/stores", auth.RequirePermission(db, "stores.create"), storeHandler.Create)
 		master.POST("/stores/:id/update", auth.RequirePermission(db, "stores.update"), storeHandler.Update)
 		master.POST("/stores/:id/delete", auth.RequirePermission(db, "stores.delete"), storeHandler.Delete)
+		master.GET("/areas", auth.RequirePermission(db, "areas.view"), areaHandler.Index)
+		master.POST("/areas", auth.RequirePermission(db, "areas.create"), areaHandler.Create)
+		master.POST("/areas/:id/update", auth.RequirePermission(db, "areas.update"), areaHandler.Update)
+		master.POST("/areas/:id/delete", auth.RequirePermission(db, "areas.delete"), areaHandler.Delete)
+		master.GET("/checklists", auth.RequirePermission(db, "checklists.view"), checklistHandler.Index)
+		master.POST("/checklists", auth.RequirePermission(db, "checklists.create"), checklistHandler.Create)
+		master.POST("/checklists/:id/update", auth.RequirePermission(db, "checklists.update"), checklistHandler.Update)
+		master.POST("/checklists/:id/delete", auth.RequirePermission(db, "checklists.delete"), checklistHandler.Delete)
+		master.GET("/incident-types", auth.RequirePermission(db, "incident-types.view"), incidentTypeHandler.Index)
+		master.POST("/incident-types", auth.RequirePermission(db, "incident-types.create"), incidentTypeHandler.Create)
+		master.POST("/incident-types/:id/update", auth.RequirePermission(db, "incident-types.update"), incidentTypeHandler.Update)
+		master.POST("/incident-types/:id/delete", auth.RequirePermission(db, "incident-types.delete"), incidentTypeHandler.Delete)
+		master.GET("/cameras", auth.RequirePermission(db, "cameras.view"), cameraHandler.Index)
+		master.POST("/cameras", auth.RequirePermission(db, "cameras.create"), cameraHandler.Create)
+		master.POST("/cameras/:id/update", auth.RequirePermission(db, "cameras.update"), cameraHandler.Update)
+		master.POST("/cameras/:id/delete", auth.RequirePermission(db, "cameras.delete"), cameraHandler.Delete)
+		master.GET("/shifts", auth.RequirePermission(db, "shifts.view"), shiftHandler.Index)
+		master.POST("/shifts", auth.RequirePermission(db, "shifts.create"), shiftHandler.Create)
+		master.POST("/shifts/:id/update", auth.RequirePermission(db, "shifts.update"), shiftHandler.Update)
+		master.POST("/shifts/:id/delete", auth.RequirePermission(db, "shifts.delete"), shiftHandler.Delete)
+		master.GET("/actions", auth.RequirePermission(db, "actions.view"), actionHandler.Index)
+		master.POST("/actions", auth.RequirePermission(db, "actions.create"), actionHandler.Create)
+		master.POST("/actions/:id/update", auth.RequirePermission(db, "actions.update"), actionHandler.Update)
+		master.POST("/actions/:id/delete", auth.RequirePermission(db, "actions.delete"), actionHandler.Delete)
 	}
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

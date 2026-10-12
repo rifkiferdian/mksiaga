@@ -11,6 +11,7 @@
       <button type="button" data-sidebar-toggle aria-expanded="{{if .Open}}true{{else}}false{{end}}" class="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm transition {{if .Active}}bg-orange-50 font-bold text-orange-700{{else}}font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600{{end}}">
         {{if eq .Key "access"}}<i class="fa-solid fa-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
         {{if eq .Key "master"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
+        {{if eq .Key "appmaster"}}<i class="fa-solid fa-gears size-5 shrink-0" aria-hidden="true"></i>{{end}}
         <span class="flex-1">{{.Label}}</span>
         <i data-sidebar-chevron class="fa-solid fa-chevron-down size-4 transition-transform {{if .Open}}rotate-180{{end}}" aria-hidden="true"></i>
       </button>
@@ -21,6 +22,12 @@
           {{if eq .Key "roles"}}<i class="fa-solid fa-user-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "permissions"}}<i class="fa-solid fa-key size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "stores"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "areas"}}<i class="fa-solid fa-map-location-dot size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "cameras"}}<i class="fa-solid fa-video size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "shifts"}}<i class="fa-solid fa-clock size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "checklists"}}<i class="fa-solid fa-list-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "incident-types"}}<i class="fa-solid fa-triangle-exclamation size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "actions"}}<i class="fa-solid fa-bolt size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{.Label}}
         </a>
         {{end}}

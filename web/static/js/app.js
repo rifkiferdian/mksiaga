@@ -211,6 +211,123 @@ document.querySelectorAll("[data-edit-store]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-edit-area]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editAreaDialog");
+    const form = document.getElementById("editAreaForm");
+    if (!dialog || !form) return;
+    form.action = `/master/areas/${button.dataset.id}/update`;
+    form.elements.store_id.value = button.dataset.storeId ?? "";
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "0";
+    form.elements.status.value = button.dataset.status ?? "active";
+    form.elements.is_priority.checked = button.dataset.priority === "1";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-checklist]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editChecklistDialog");
+    const form = document.getElementById("editChecklistForm");
+    if (!dialog || !form) return;
+    form.action = `/master/checklists/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.phase.value = button.dataset.phase ?? "start";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "0";
+    form.elements.status.value = button.dataset.status ?? "active";
+    form.elements.requires_camera_count.checked = button.dataset.requiresCameraCount === "1";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-incident-type]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editIncidentTypeDialog");
+    const form = document.getElementById("editIncidentTypeForm");
+    if (!dialog || !form) return;
+    form.action = `/master/incident-types/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "0";
+    form.elements.status.value = button.dataset.status ?? "active";
+    form.elements.requires_description.checked = button.dataset.requiresDescription === "1";
+    dialog.showModal();
+  });
+});
+
+function filterCameraAreas(form, selectedArea = "") {
+  const store = form?.querySelector("[data-camera-store]");
+  const area = form?.querySelector("[data-camera-area]");
+  if (!store || !area) return;
+  const storeID = store.value;
+  let available = 0;
+  [...area.options].forEach((option, index) => {
+    if (index === 0) return;
+    const visible = Boolean(storeID) && option.dataset.storeId === storeID;
+    option.hidden = !visible;
+    option.disabled = !visible;
+    if (visible) available += 1;
+  });
+  area.disabled = !storeID || available === 0;
+  area.options[0].textContent = !storeID ? "Pilih store terlebih dahulu" : available ? "Pilih area" : "Belum ada area pada store ini";
+  area.value = selectedArea && [...area.options].some((option) => !option.disabled && option.value === selectedArea) ? selectedArea : "";
+}
+
+document.querySelectorAll("[data-camera-form]").forEach((form) => {
+  form.querySelector("[data-camera-store]")?.addEventListener("change", () => filterCameraAreas(form));
+  filterCameraAreas(form);
+});
+
+document.querySelectorAll("[data-edit-camera]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editCameraDialog");
+    const form = document.getElementById("editCameraForm");
+    if (!dialog || !form) return;
+    form.action = `/master/cameras/${button.dataset.id}/update`;
+    form.elements.store_id.value = button.dataset.storeId ?? "";
+    filterCameraAreas(form, button.dataset.areaId ?? "");
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.description.value = button.dataset.description ?? "";
+    form.elements.status.value = button.dataset.status ?? "active";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-shift]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editShiftDialog");
+    const form = document.getElementById("editShiftForm");
+    if (!dialog || !form) return;
+    form.action = `/master/shifts/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.start_time.value = button.dataset.startTime ?? "";
+    form.elements.end_time.value = button.dataset.endTime ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "0";
+    form.elements.status.value = button.dataset.status ?? "active";
+    dialog.showModal();
+  });
+});
+
+document.querySelectorAll("[data-edit-action]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const dialog = document.getElementById("editActionDialog");
+    const form = document.getElementById("editActionForm");
+    if (!dialog || !form) return;
+    form.action = `/master/actions/${button.dataset.id}/update`;
+    form.elements.code.value = button.dataset.code ?? "";
+    form.elements.name.value = button.dataset.name ?? "";
+    form.elements.sort_order.value = button.dataset.sortOrder ?? "0";
+    form.elements.status.value = button.dataset.status ?? "active";
+    form.elements.requires_description.checked = button.dataset.requiresDescription === "1";
+    dialog.showModal();
+  });
+});
+
 document.querySelectorAll("[data-user-store-row]").forEach((row) => {
   const checkbox = row.querySelector("[data-user-store-checkbox]");
   const role = row.querySelector("[data-user-store-role]");
@@ -254,7 +371,7 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store]").forEach((button) => {
+document.querySelectorAll("[data-edit-role], [data-edit-permission], [data-edit-user], [data-edit-store], [data-edit-area], [data-edit-checklist], [data-edit-incident-type], [data-edit-camera], [data-edit-shift], [data-edit-action]").forEach((button) => {
   button.title = "Edit";
 });
 
@@ -264,6 +381,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
 
   const search = filter.querySelector("[data-filter-search]");
   const guard = filter.querySelector("[data-filter-guard]");
+  const store = filter.querySelector("[data-filter-store]");
   const count = filter.querySelector("[data-filter-count]");
   const rows = [...table.querySelectorAll("[data-filter-row]")];
   const empty = table.querySelector("[data-filter-empty]");
@@ -330,7 +448,8 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
     const filteredRows = rows.filter((row) => {
       const matchesSearch = (row.dataset.filterSearch ?? "").toLowerCase().includes(query);
       const matchesGuard = !selectedGuard || row.dataset.filterGuard === selectedGuard;
-      return matchesSearch && matchesGuard;
+      const matchesStore = !store?.value || row.dataset.filterStore === store.value;
+      return matchesSearch && matchesGuard && matchesStore;
     });
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -349,6 +468,7 @@ document.querySelectorAll("[data-access-filter]").forEach((filter) => {
 
   search?.addEventListener("input", () => applyAccessFilter(true));
   guard?.addEventListener("change", () => applyAccessFilter(true));
+  store?.addEventListener("change", () => applyAccessFilter(true));
   applyAccessFilter();
 });
 

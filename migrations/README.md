@@ -30,6 +30,73 @@ Get-Content -Raw migrations/000002_create_user_sessions.up.sql |
 
 Setelah migrasi pertama kali diterapkan, sesi lama perlu login ulang agar tercatat sebagai perangkat aktif.
 
+## Migrasi 000003: master CCTV
+
+`000003_create_cctv_masters.up.sql` menambahkan enam tabel master CCTV:
+`master_area`, `master_kamera`, `master_shift`, `master_checklist`,
+`master_jenis_insiden`, dan `master_tindakan`. Lokasi tetap menggunakan
+`stores`; petugas dan supervisor tetap menggunakan `users`.
+
+Jalankan migrasi ini sekali pada database yang sudah memiliki migrasi 000001
+dan 000002, lanjutkan 000004 sampai 000006, kemudian jalankan `seeds/000006_cctv_masters.sql`.
+Jika memakai `database/mksiaga_starter.sql` untuk instalasi baru, tetap
+terapkan migrasi 000003–000006 dan seed mulai 000006 sesudahnya.
+
+Seed mengisi tujuh template area per toko aktif dan tiga shift global. Delapan checklist
+awal, enam checklist akhir, tujuh jenis insiden, dan lima tindakan bersifat global. Area akses
+ruang ganti/toilet berarti area luarnya. Sesuaikan area dengan kondisi toko.
+Seed dapat diulang tanpa menimpa perubahan master; toko baru mendapatkan
+template area serta Shift dan Checklist global saat seed dijalankan kembali. Kamera belum diisi dan jam shift
+masih NULL karena data sebenarnya belum tersedia. Shift berlaku untuk seluruh toko;
+jam selesai lebih kecil dari jam mulai berarti melewati tengah malam.
+
+Foreign key gabungan memastikan kamera hanya terhubung ke area pada toko
+yang sama. Master yang sudah dipakai sebaiknya dinonaktifkan melalui `status`.
+`requires_camera_count` menandai checklist yang nanti memerlukan angka kamera
+aktif/total, sedangkan `requires_description` menandai pilihan Lainnya.
+Penyimpanan jawaban dan validasi kolom transaksi menjadi bagian modul laporan.
+Migrasi ini belum membuat tabel transaksi ataupun menu aplikasi.
+
+## Migrasi 000004: shift dan checklist per store
+
+`000004_scope_shift_checklist_to_store.up.sql` merupakan migrasi transisi yang menambahkan `store_id` wajib,
+foreign key ke `stores`, dan unique key `(store_id, code)` pada Shift dan
+Checklist. Backup database sebelum menjalankan sekali pada database lama.
+MySQL DDL auto-commit; kegagalan sebagian perlu diperiksa sebelum mencoba ulang.
+
+Prasyarat database lama: minimal satu store belum dihapus jika master sudah
+terisi, serta belum ada tabel transaksi yang merujuk Shift/Checklist. Migrasi
+mempertahankan ID asli pada store dengan ID terkecil dan menyalin nilai master
+yang ada, termasuk perubahan pengguna, ke setiap store lain yang belum dihapus.
+Jam kerja yang NULL tetap NULL. Pada instalasi baru dengan master kosong,
+migrasi dapat dijalankan sebelum seed store.
+
+Rollback ke master global tidak disediakan otomatis karena perubahan tiap
+store tidak dapat digabungkan tanpa keputusan pengguna. Untuk membatalkan
+migrasi, pulihkan backup sebelum migrasi beserta versi kode yang sesuai.
+
+Setelah 000004, seed 000006 membutuhkan schema per store. Jalankan seluruh
+migrasi dahulu, baru seed. Jangan menjalankan ulang seed superadmin pada
+database aktif hanya untuk pembaruan master karena seed tersebut mereset password.
+
+## Migrasi 000005: checklist global
+
+`000005_make_checklist_global.up.sql` mengembalikan Checklist menjadi master
+global karena seluruh store menggunakan daftar pemeriksaan yang sama. Migrasi
+memastikan isi tiap kode masih identik, menyisakan satu salinan, lalu menghapus
+`store_id`. Jika ditemukan perbedaan antar-store, migrasi berhenti sebelum
+menghapus data agar perubahan dapat diselaraskan secara manual.
+
+## Migrasi 000006: shift global
+
+`000006_make_shift_global.up.sql` mengembalikan Shift menjadi master global.
+Migrasi memastikan isi setiap kode Shift identik antar-store, menyisakan satu
+salinan, lalu menghapus `store_id`. Jika ada perbedaan, migrasi berhenti sebelum
+data digabung agar jadwal dapat diselaraskan secara manual.
+
+Aturan akses dan pengujian dijelaskan di
+[`internal/storescope/README.md`](../internal/storescope/README.md).
+
 ## Seed development
 
 `seeds/000001_development_superadmin.sql` membuat akun lokal `admin`, role `superadmin`, dan `Store Pusat`. Seed bersifat idempotent sehingga aman dijalankan ulang, tetapi akan mengembalikan password akun tersebut ke nilai development yang tercantum di dalam file.
