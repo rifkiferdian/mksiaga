@@ -555,3 +555,95 @@ document.addEventListener("click", (event) => {
   }
   if (notificationWrapper && !notificationWrapper.contains(event.target)) notificationWrapper.removeAttribute("open");
 });
+
+const incidentList = document.querySelector("[data-incident-list]");
+const incidentTemplate = document.getElementById("incidentFormTemplate");
+
+function reindexIncidents() {
+  const cards = [...(incidentList?.querySelectorAll("[data-incident-card]") ?? [])];
+  cards.forEach((card, index) => {
+    const title = card.querySelector("[data-incident-title]");
+    if (title) title.textContent = `Insiden #${index + 1}`;
+    const indexField = card.querySelector("[data-incident-index]");
+    if (indexField) indexField.value = String(index);
+    card.querySelectorAll("[name]").forEach((field) => {
+      field.name = field.name.replace(/incident_\d+_/, `incident_${index}_`);
+    });
+  });
+}
+
+document.querySelector("[data-add-incident]")?.addEventListener("click", () => {
+  if (!incidentList || !(incidentTemplate instanceof HTMLTemplateElement)) return;
+  const card = incidentTemplate.content.firstElementChild?.cloneNode(true);
+  if (!(card instanceof HTMLElement)) return;
+  incidentList.append(card);
+  reindexIncidents();
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+incidentList?.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-incident]");
+  if (!removeButton) return;
+  removeButton.closest("[data-incident-card]")?.remove();
+  reindexIncidents();
+});
+
+reindexIncidents();
+
+document.querySelectorAll("[data-signature-pad]").forEach((canvas) => {
+  const wrapper = canvas.closest("div.rounded-2xl");
+  const hidden = wrapper?.querySelector("[data-signature-value]");
+  const clearButton = wrapper?.querySelector("[data-clear-signature]");
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const width = Math.max(canvas.clientWidth, 280);
+  const height = 160;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  const context = canvas.getContext("2d");
+  context.scale(ratio, ratio);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.lineWidth = 2.2;
+  context.strokeStyle = "#0f172a";
+  let drawing = false;
+
+  const point = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+  canvas.addEventListener("pointerdown", (event) => {
+    drawing = true;
+    canvas.setPointerCapture(event.pointerId);
+    const current = point(event);
+    context.beginPath();
+    context.moveTo(current.x, current.y);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!drawing) return;
+    const current = point(event);
+    context.lineTo(current.x, current.y);
+    context.stroke();
+    canvas.dataset.signed = "true";
+  });
+  const stop = () => { drawing = false; context.closePath(); };
+  canvas.addEventListener("pointerup", stop);
+  canvas.addEventListener("pointercancel", stop);
+  clearButton?.addEventListener("click", () => {
+    context.clearRect(0, 0, width, height);
+    delete canvas.dataset.signed;
+    if (hidden) hidden.value = "";
+  });
+});
+
+document.getElementById("form-laporan")?.addEventListener("submit", (event) => {
+  const pads = [...document.querySelectorAll("[data-signature-pad]")];
+  pads.forEach((canvas) => {
+    const hidden = canvas.closest("div.rounded-2xl")?.querySelector("[data-signature-value]");
+    if (hidden) hidden.value = canvas.dataset.signed === "true" ? canvas.toDataURL("image/png") : "";
+  });
+  if (event.submitter?.value === "submitted" && pads.some((canvas) => canvas.dataset.signed !== "true")) {
+    event.preventDefault();
+    showDashboardToast("Tanda tangan petugas serah dan petugas terima wajib diisi sebelum laporan dikirim.");
+    pads.find((canvas) => canvas.dataset.signed !== "true")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+});

@@ -1,6 +1,7 @@
 package storescope_test
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -22,6 +23,7 @@ import (
 	"github.com/joho/godotenv"
 	"mksiaga/internal/auth"
 	"mksiaga/internal/config"
+	"mksiaga/internal/dailyreport"
 	"mksiaga/internal/router"
 )
 
@@ -93,6 +95,8 @@ func TestStoreMastersIntegration(t *testing.T) {
 	}
 	runFile("migrations/000005_make_checklist_global.up.sql")
 	runFile("migrations/000006_make_shift_global.up.sql")
+	runFile("migrations/000007_create_daily_cctv_reports.up.sql")
+	runFile("migrations/000008_add_daily_report_signatures.up.sql")
 	// Repeating seed preserves global shift and checklist changes.
 	runFile("seeds/000006_cctv_masters.sql")
 	runFile("seeds/000006_cctv_masters.sql")
@@ -105,7 +109,7 @@ func TestStoreMastersIntegration(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM master_checklist`).Scan(&count); err != nil || count != 14 {
 		t.Fatalf("seed duplicated checklists: %d %v", count, err)
 	}
-	for _, p := range []string{"seeds/000007_area_management_permissions.sql", "seeds/000008_checklist_management_permissions.sql", "seeds/000010_camera_management_permissions.sql", "seeds/000011_shift_management_permissions.sql"} {
+	for _, p := range []string{"seeds/000007_area_management_permissions.sql", "seeds/000008_checklist_management_permissions.sql", "seeds/000010_camera_management_permissions.sql", "seeds/000011_shift_management_permissions.sql", "seeds/000013_daily_report_permissions.sql"} {
 		runFile(p)
 	}
 	exec(`INSERT INTO users(id,name,username,password_hash) VALUES(1,'Test User','test','unused');
@@ -113,6 +117,60 @@ func TestStoreMastersIntegration(t *testing.T) {
  INSERT INTO user_store_permissions(user_store_id,permission_id) SELECT 1,id FROM permissions;
  INSERT INTO user_store_permissions(user_store_id,permission_id) SELECT 2,id FROM permissions WHERE name LIKE '%.view';
  INSERT INTO master_kamera(store_id,area_id,code,name) SELECT store_id,id,'CAM-01',CONCAT('Camera ',store_id) FROM master_area WHERE code='POS';`)
+	var reportShiftID, areaID, cameraID, incidentTypeID, actionID uint64
+	for query, target := range map[string]*uint64{
+		`SELECT id FROM master_shift WHERE code='PAGI'`:              &reportShiftID,
+		`SELECT id FROM master_area WHERE store_id=1 AND code='POS'`: &areaID,
+		`SELECT id FROM master_kamera WHERE store_id=1 LIMIT 1`:      &cameraID,
+		`SELECT id FROM master_jenis_insiden ORDER BY id LIMIT 1`:    &incidentTypeID,
+		`SELECT id FROM master_tindakan ORDER BY id LIMIT 1`:         &actionID,
+	} {
+		if err := db.QueryRow(query).Scan(target); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows, err := db.Query(`SELECT id FROM master_checklist WHERE status='active'`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var answers []dailyreport.ChecklistAnswer
+	for rows.Next() {
+		var id uint64
+		if err := rows.Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		answers = append(answers, dailyreport.ChecklistAnswer{ChecklistID: id, Answer: "yes"})
+	}
+	rows.Close()
+	reportService := dailyreport.NewService(dailyreport.NewRepository(db))
+	reportInput := dailyreport.Input{StoreID: 1, OfficerID: 1, ShiftID: reportShiftID, ReportDate: "2026-10-12", WorkStart: "08:00", WorkEnd: "16:00", Location: "Control Room", Status: "draft", Checklists: answers, Monitoring: []dailyreport.MonitoringLog{{Time: "08:00", AreaID: &areaID, Condition: "normal"}}, Incidents: []dailyreport.Incident{{Time: "09:00", AreaID: &areaID, CameraID: &cameraID, IncidentTypeID: &incidentTypeID, Description: "Test", Status: "completed", ActionIDs: []uint64{actionID}}}}
+	if err := reportService.Create(context.Background(), reportInput); err != nil {
+		t.Fatalf("create daily report: %v", err)
+	}
+	var reportID uint64
+	if err := db.QueryRow(`SELECT id FROM daily_cctv_reports WHERE store_id=1`).Scan(&reportID); err != nil {
+		t.Fatal(err)
+	}
+	for table, want := range map[string]int{"daily_cctv_report_checklists": len(answers), "daily_cctv_monitoring_logs": 1, "daily_cctv_incidents": 1, "daily_cctv_incident_actions": 1} {
+		var got int
+		query := "SELECT COUNT(*) FROM " + table
+		if table != "daily_cctv_incident_actions" {
+			query += " WHERE report_id=?"
+			if err := db.QueryRow(query, reportID).Scan(&got); err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			if err := db.QueryRow(query).Scan(&got); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if got != want {
+			t.Fatalf("%s rows: got %d want %d", table, got, want)
+		}
+	}
+	if err := reportService.Delete(context.Background(), reportID, 1); err != nil {
+		t.Fatal(err)
+	}
 	engine, err := router.New(config.Config{AppName: "Test", GinMode: "test", Session: config.Session{Secret: strings.Repeat("a", 32)}}, db, "../../web")
 	if err != nil {
 		t.Fatal(err)
@@ -193,6 +251,14 @@ func TestStoreMastersIntegration(t *testing.T) {
 			t.Fatalf("page failed: %s status=%d", path, status)
 		}
 		return m[1]
+	}
+	reportStatus, reportBody := get(operator, "/reports/daily")
+	if reportStatus != 200 || !strings.Contains(reportBody, "Laporan Harian Petugas Monitoring CCTV") || !strings.Contains(reportBody, `/reports/daily/new`) || strings.Contains(reportBody, `id="form-laporan"`) {
+		t.Fatalf("daily report page failed: status=%d", reportStatus)
+	}
+	reportFormStatus, reportFormBody := get(operator, "/reports/daily/new")
+	if reportFormStatus != 200 || !strings.Contains(reportFormBody, "Buat Laporan Harian CCTV") || !strings.Contains(reportFormBody, `id="form-laporan"`) {
+		t.Fatalf("daily report form page failed: status=%d", reportFormStatus)
 	}
 	// Checklist is global: it has one shared list and no store field or filter.
 	checklistPath := "/master/checklists"

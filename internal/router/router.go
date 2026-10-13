@@ -17,6 +17,7 @@ import (
 	cameraManagement "mksiaga/internal/camera"
 	checklistManagement "mksiaga/internal/checklist"
 	"mksiaga/internal/config"
+	"mksiaga/internal/dailyreport"
 	"mksiaga/internal/dashboard"
 	"mksiaga/internal/httperror"
 	incidentTypeManagement "mksiaga/internal/incidenttype"
@@ -87,12 +88,19 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		areaHandler := areaManagement.NewHandler(cfg.AppName, areaManagement.NewService(areaManagement.NewRepository(db)), navigationService)
 		cameraHandler := cameraManagement.NewHandler(cfg.AppName, cameraManagement.NewService(cameraManagement.NewRepository(db)), navigationService)
 		checklistHandler := checklistManagement.NewHandler(cfg.AppName, checklistManagement.NewService(checklistManagement.NewRepository(db)), navigationService)
+		dailyReportHandler := dailyreport.NewHandler(cfg.AppName, dailyreport.NewService(dailyreport.NewRepository(db)), navigationService)
 		incidentTypeHandler := incidentTypeManagement.NewHandler(cfg.AppName, incidentTypeManagement.NewService(incidentTypeManagement.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
 		sessionHandler := sessionmanagement.NewHandler(cfg.AppName, sessionmanagement.NewService(sessionmanagement.NewRepository(db)), navigationService)
 		shiftHandler := shiftManagement.NewHandler(cfg.AppName, shiftManagement.NewService(shiftManagement.NewRepository(db)), navigationService)
 		userHandler := userManagement.NewHandler(cfg.AppName, userManagement.NewService(userManagement.NewRepository(db)), navigationService)
+		reports := authorized.Group("/reports")
+		reports.Use(storescope.Middleware(db))
+		reports.GET("/daily", auth.RequirePermission(db, "daily-reports.view"), dailyReportHandler.Index)
+		reports.GET("/daily/new", auth.RequirePermission(db, "daily-reports.create"), dailyReportHandler.New)
+		reports.POST("/daily", auth.RequirePermission(db, "daily-reports.create"), dailyReportHandler.Create)
+		reports.POST("/daily/:id/delete", auth.RequirePermission(db, "daily-reports.delete"), dailyReportHandler.Delete)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
 		authorized.POST("/profile/password", profileHandler.UpdatePassword)

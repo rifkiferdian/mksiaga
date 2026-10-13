@@ -124,6 +124,12 @@ Get-Content -Raw migrations/000005_make_checklist_global.up.sql |
 
 Get-Content -Raw migrations/000006_make_shift_global.up.sql |
   & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000007_create_daily_cctv_reports.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000008_add_daily_report_signatures.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
 ```
 
 Kemudian jalankan seed sesuai nomor urut:

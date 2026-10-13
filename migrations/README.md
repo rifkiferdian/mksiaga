@@ -94,6 +94,16 @@ Migrasi memastikan isi setiap kode Shift identik antar-store, menyisakan satu
 salinan, lalu menghapus `store_id`. Jika ada perbedaan, migrasi berhenti sebelum
 data digabung agar jadwal dapat diselaraskan secara manual.
 
+## Migrasi 000007: laporan harian CCTV
+
+`000007_create_daily_cctv_reports.up.sql` membuat laporan induk dan tabel
+detail untuk checklist, monitoring rutin, insiden, serta tindakan insiden.
+Data laporan selalu terikat pada store dan petugas aktif, sedangkan Shift,
+Checklist, Jenis Insiden, dan Tindakan menggunakan master global.
+
+`000008_add_daily_report_signatures.up.sql` menambahkan penyimpanan tanda
+tangan digital petugas serah dan petugas terima pada laporan harian.
+
 Aturan akses dan pengujian dijelaskan di
 [`internal/storescope/README.md`](../internal/storescope/README.md).
 
