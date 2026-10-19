@@ -84,7 +84,7 @@ Project tidak menjalankan migrasi secara otomatis. Ada dua cara menyiapkan datab
 
 ### Opsi 1: SQL starter
 
-[`database/mksiaga_starter.sql`](database/mksiaga_starter.sql) menyediakan schema dasar dan data awal. Setelah impor, terapkan migrasi 000003 sampai 000006, lalu seed mulai 000006 untuk modul master CCTV terbaru. Jangan mengimpor starter ke database yang sudah digunakan.
+[`database/mksiaga_starter.sql`](database/mksiaga_starter.sql) menyediakan schema dasar dan data awal. Setelah impor, terapkan migrasi 000003 sampai 000009, lalu seed mulai 000006 untuk modul CCTV dan workflow terbaru. Jangan mengimpor starter ke database yang sudah digunakan.
 
 ```powershell
 & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root -e "CREATE DATABASE mksiaga_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -130,6 +130,9 @@ Get-Content -Raw migrations/000007_create_daily_cctv_reports.up.sql |
 
 Get-Content -Raw migrations/000008_add_daily_report_signatures.up.sql |
   & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
+
+Get-Content -Raw migrations/000009_add_daily_report_workflow.up.sql |
+  & 'C:\xampp8.2.12\mysql\bin\mysql.exe' -u root mksiaga_dev
 ```
 
 Kemudian jalankan seed sesuai nomor urut:
@@ -142,6 +145,15 @@ Get-ChildItem seeds/*.sql | Sort-Object Name | ForEach-Object {
 ```
 
 Seed development bersifat idempotent. Menjalankan ulang seed superadmin akan mengembalikan password akun admin ke password development. Detail tiap migrasi tersedia di [`migrations/README.md`](migrations/README.md).
+
+Seed `000014_security_dummy_users.sql` menyediakan akun pengujian berikut pada store aktif pertama:
+
+| Username | Password | Shift default |
+| --- | --- | --- |
+| `security_dummy_1` | `qweqwe` | Pagi |
+| `security_dummy_2` | `qweqwe` | Siang |
+
+Akun tersebut hanya untuk development. Petugas shift pagi dapat mengajukan serah terima kepada petugas shift siang; petugas penerima wajib login dan menandatangani sendiri sebelum laporan masuk ke verifikasi supervisor.
 
 Untuk membuat perubahan schema baru:
 

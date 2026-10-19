@@ -25,6 +25,7 @@ import (
 	"mksiaga/internal/config"
 	"mksiaga/internal/dailyreport"
 	"mksiaga/internal/router"
+	"mksiaga/internal/storescope"
 )
 
 // Opt-in: creates and drops only a random, isolated test database.
@@ -97,6 +98,7 @@ func TestStoreMastersIntegration(t *testing.T) {
 	runFile("migrations/000006_make_shift_global.up.sql")
 	runFile("migrations/000007_create_daily_cctv_reports.up.sql")
 	runFile("migrations/000008_add_daily_report_signatures.up.sql")
+	runFile("migrations/000009_add_daily_report_workflow.up.sql")
 	// Repeating seed preserves global shift and checklist changes.
 	runFile("seeds/000006_cctv_masters.sql")
 	runFile("seeds/000006_cctv_masters.sql")
@@ -168,7 +170,7 @@ func TestStoreMastersIntegration(t *testing.T) {
 			t.Fatalf("%s rows: got %d want %d", table, got, want)
 		}
 	}
-	if err := reportService.Delete(context.Background(), reportID, 1); err != nil {
+	if err := reportService.Delete(storescope.ForStore(context.Background(), 1), reportID); err != nil {
 		t.Fatal(err)
 	}
 	engine, err := router.New(config.Config{AppName: "Test", GinMode: "test", Session: config.Session{Secret: strings.Repeat("a", 32)}}, db, "../../web")
@@ -259,6 +261,10 @@ func TestStoreMastersIntegration(t *testing.T) {
 	reportFormStatus, reportFormBody := get(operator, "/reports/daily/new")
 	if reportFormStatus != 200 || !strings.Contains(reportFormBody, "Buat Laporan Harian CCTV") || !strings.Contains(reportFormBody, `id="form-laporan"`) {
 		t.Fatalf("daily report form page failed: status=%d", reportFormStatus)
+	}
+	recapStatus, recapBody := get(operator, "/reports/recap")
+	if recapStatus != 200 || !strings.Contains(recapBody, "Rekap Laporan CCTV") || !strings.Contains(recapBody, "Ringkasan per store") {
+		t.Fatalf("daily report recap page failed: status=%d", recapStatus)
 	}
 	// Checklist is global: it has one shared list and no store field or filter.
 	checklistPath := "/master/checklists"

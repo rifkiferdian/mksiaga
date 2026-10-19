@@ -150,6 +150,38 @@ LOCK TABLES `daily_cctv_report_checklists` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `daily_cctv_report_events`
+--
+
+DROP TABLE IF EXISTS `daily_cctv_report_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `daily_cctv_report_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `report_id` bigint(20) unsigned NOT NULL,
+  `actor_user_id` bigint(20) unsigned NOT NULL,
+  `from_status` varchar(30) NOT NULL,
+  `to_status` varchar(30) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  PRIMARY KEY (`id`),
+  KEY `daily_report_event_report_index` (`report_id`,`created_at`),
+  KEY `daily_report_event_actor_fk` (`actor_user_id`),
+  CONSTRAINT `daily_report_event_actor_fk` FOREIGN KEY (`actor_user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `daily_report_event_report_fk` FOREIGN KEY (`report_id`) REFERENCES `daily_cctv_reports` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `daily_cctv_report_events`
+--
+
+LOCK TABLES `daily_cctv_report_events` WRITE;
+/*!40000 ALTER TABLE `daily_cctv_report_events` DISABLE KEYS */;
+/*!40000 ALTER TABLE `daily_cctv_report_events` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `daily_cctv_reports`
 --
 
@@ -173,8 +205,12 @@ CREATE TABLE `daily_cctv_reports` (
   `handover_notes` text DEFAULT NULL,
   `handover_from_signature` mediumtext DEFAULT NULL,
   `handover_to_signature` mediumtext DEFAULT NULL,
-  `status` enum('draft','submitted') NOT NULL DEFAULT 'draft',
+  `status` enum('draft','waiting_handover','waiting_review','revision','approved') NOT NULL DEFAULT 'draft',
   `submitted_at` datetime(6) DEFAULT NULL,
+  `accepted_at` datetime(6) DEFAULT NULL,
+  `reviewed_by_user_id` bigint(20) unsigned DEFAULT NULL,
+  `reviewed_at` datetime(6) DEFAULT NULL,
+  `review_notes` text DEFAULT NULL,
   `created_at` datetime(6) NOT NULL DEFAULT current_timestamp(6),
   `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
   PRIMARY KEY (`id`),
@@ -184,8 +220,10 @@ CREATE TABLE `daily_cctv_reports` (
   KEY `daily_report_supervisor_fk` (`supervisor_id`),
   KEY `daily_report_shift_fk` (`shift_id`),
   KEY `daily_report_handover_user_fk` (`handover_to_user_id`),
+  KEY `daily_report_reviewer_fk` (`reviewed_by_user_id`),
   CONSTRAINT `daily_report_handover_user_fk` FOREIGN KEY (`handover_to_user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `daily_report_officer_fk` FOREIGN KEY (`officer_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `daily_report_reviewer_fk` FOREIGN KEY (`reviewed_by_user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `daily_report_shift_fk` FOREIGN KEY (`shift_id`) REFERENCES `master_shift` (`id`),
   CONSTRAINT `daily_report_store_fk` FOREIGN KEY (`store_id`) REFERENCES `stores` (`id`),
   CONSTRAINT `daily_report_supervisor_fk` FOREIGN KEY (`supervisor_id`) REFERENCES `users` (`id`)
@@ -416,7 +454,7 @@ CREATE TABLE `permissions` (
   `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `permissions_name_guard_unique` (`name`,`guard_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -425,7 +463,7 @@ CREATE TABLE `permissions` (
 
 LOCK TABLES `permissions` WRITE;
 /*!40000 ALTER TABLE `permissions` DISABLE KEYS */;
-INSERT INTO `permissions` VALUES (2,'roles.view','web','Melihat daftar role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(3,'roles.create','web','Membuat role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(4,'roles.update','web','Memperbarui role dan assignment permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(5,'roles.delete','web','Menghapus role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(6,'permissions.view','web','Melihat daftar permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(7,'permissions.create','web','Membuat permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(8,'permissions.update','web','Memperbarui permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(9,'permissions.delete','web','Menghapus permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(19,'users.view','web','Melihat daftar user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(20,'users.create','web','Membuat user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(21,'users.update','web','Memperbarui user, store, dan role','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(22,'users.delete','web','Menghapus user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(23,'stores.view','web','Melihat master data store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(24,'stores.create','web','Membuat store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(25,'stores.update','web','Memperbarui store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(26,'stores.delete','web','Menghapus store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(27,'areas.view','web','Melihat master data area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(28,'areas.create','web','Membuat area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(29,'areas.update','web','Memperbarui area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(30,'areas.delete','web','Menghapus area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(31,'checklists.view','web','Melihat master data checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(32,'checklists.create','web','Membuat checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(33,'checklists.update','web','Memperbarui checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(34,'checklists.delete','web','Menghapus checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(35,'incident-types.view','web','Melihat master jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(36,'incident-types.create','web','Membuat jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(37,'incident-types.update','web','Memperbarui jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(38,'incident-types.delete','web','Menghapus jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(39,'cameras.view','web','Melihat master data kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(40,'cameras.create','web','Membuat kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(41,'cameras.update','web','Memperbarui kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(42,'cameras.delete','web','Menghapus kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(43,'shifts.view','web','Melihat master data shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(44,'shifts.create','web','Membuat shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(45,'shifts.update','web','Memperbarui shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(46,'shifts.delete','web','Menghapus shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(47,'actions.view','web','Melihat master data tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(48,'actions.create','web','Membuat tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(49,'actions.update','web','Memperbarui tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(50,'actions.delete','web','Menghapus tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(51,'daily-reports.view','web','Melihat laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424'),(52,'daily-reports.create','web','Membuat laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424'),(53,'daily-reports.delete','web','Menghapus laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424');
+INSERT INTO `permissions` VALUES (2,'roles.view','web','Melihat daftar role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(3,'roles.create','web','Membuat role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(4,'roles.update','web','Memperbarui role dan assignment permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(5,'roles.delete','web','Menghapus role','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(6,'permissions.view','web','Melihat daftar permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(7,'permissions.create','web','Membuat permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(8,'permissions.update','web','Memperbarui permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(9,'permissions.delete','web','Menghapus permission','2026-10-08 13:43:34.934316','2026-10-08 13:43:34.934316'),(19,'users.view','web','Melihat daftar user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(20,'users.create','web','Membuat user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(21,'users.update','web','Memperbarui user, store, dan role','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(22,'users.delete','web','Menghapus user','2026-10-10 11:12:47.489454','2026-10-10 11:12:47.489454'),(23,'stores.view','web','Melihat master data store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(24,'stores.create','web','Membuat store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(25,'stores.update','web','Memperbarui store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(26,'stores.delete','web','Menghapus store','2026-10-10 11:12:47.510954','2026-10-10 11:12:47.510954'),(27,'areas.view','web','Melihat master data area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(28,'areas.create','web','Membuat area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(29,'areas.update','web','Memperbarui area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(30,'areas.delete','web','Menghapus area','2026-10-12 09:46:41.215520','2026-10-12 09:46:41.215520'),(31,'checklists.view','web','Melihat master data checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(32,'checklists.create','web','Membuat checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(33,'checklists.update','web','Memperbarui checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(34,'checklists.delete','web','Menghapus checklist','2026-10-12 10:23:51.347394','2026-10-12 10:23:51.347394'),(35,'incident-types.view','web','Melihat master jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(36,'incident-types.create','web','Membuat jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(37,'incident-types.update','web','Memperbarui jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(38,'incident-types.delete','web','Menghapus jenis insiden','2026-10-12 10:32:30.951946','2026-10-12 10:32:30.951946'),(39,'cameras.view','web','Melihat master data kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(40,'cameras.create','web','Membuat kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(41,'cameras.update','web','Memperbarui kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(42,'cameras.delete','web','Menghapus kamera','2026-10-12 10:35:24.385069','2026-10-12 10:35:24.385069'),(43,'shifts.view','web','Melihat master data shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(44,'shifts.create','web','Membuat shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(45,'shifts.update','web','Memperbarui shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(46,'shifts.delete','web','Menghapus shift','2026-10-12 10:37:29.798523','2026-10-12 10:37:29.798523'),(47,'actions.view','web','Melihat master data tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(48,'actions.create','web','Membuat tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(49,'actions.update','web','Memperbarui tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(50,'actions.delete','web','Menghapus tindakan','2026-10-12 10:42:48.381689','2026-10-12 10:42:48.381689'),(51,'daily-reports.view','web','Melihat laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424'),(52,'daily-reports.create','web','Membuat laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424'),(53,'daily-reports.delete','web','Menghapus laporan harian CCTV','2026-10-12 14:42:06.329424','2026-10-12 14:42:06.329424'),(54,'daily-reports.review','web','Memverifikasi dan menyetujui laporan harian CCTV','2026-10-17 13:17:59.916541','2026-10-17 13:17:59.916541');
 /*!40000 ALTER TABLE `permissions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -453,7 +491,7 @@ CREATE TABLE `role_permissions` (
 
 LOCK TABLES `role_permissions` WRITE;
 /*!40000 ALTER TABLE `role_permissions` DISABLE KEYS */;
-INSERT INTO `role_permissions` VALUES (2,2,'2026-10-08 13:43:34.935167'),(2,3,'2026-10-08 13:43:34.935167'),(2,4,'2026-10-08 13:43:34.935167'),(2,5,'2026-10-08 13:43:34.935167'),(2,6,'2026-10-08 13:43:34.935167'),(2,7,'2026-10-08 13:43:34.935167'),(2,8,'2026-10-08 13:43:34.935167'),(2,9,'2026-10-08 13:43:34.935167'),(2,19,'2026-10-10 11:12:47.489710'),(2,20,'2026-10-10 11:12:47.489710'),(2,21,'2026-10-10 11:12:47.489710'),(2,22,'2026-10-10 11:12:47.489710'),(2,23,'2026-10-10 11:12:47.511209'),(2,24,'2026-10-10 11:12:47.511209'),(2,25,'2026-10-10 11:12:47.511209'),(2,26,'2026-10-10 11:12:47.511209'),(2,27,'2026-10-12 09:46:41.216988'),(2,28,'2026-10-12 09:46:41.216988'),(2,29,'2026-10-12 09:46:41.216988'),(2,30,'2026-10-12 09:46:41.216988'),(2,31,'2026-10-12 10:23:51.347989'),(2,32,'2026-10-12 10:23:51.347989'),(2,33,'2026-10-12 10:23:51.347989'),(2,34,'2026-10-12 10:23:51.347989'),(2,35,'2026-10-12 10:32:30.952486'),(2,36,'2026-10-12 10:32:30.952486'),(2,37,'2026-10-12 10:32:30.952486'),(2,38,'2026-10-12 10:32:30.952486'),(2,39,'2026-10-12 10:35:24.385537'),(2,40,'2026-10-12 10:35:24.385537'),(2,41,'2026-10-12 10:35:24.385537'),(2,42,'2026-10-12 10:35:24.385537'),(2,43,'2026-10-12 10:37:29.799139'),(2,44,'2026-10-12 10:37:29.799139'),(2,45,'2026-10-12 10:37:29.799139'),(2,46,'2026-10-12 10:37:29.799139'),(2,47,'2026-10-12 10:42:48.382221'),(2,48,'2026-10-12 10:42:48.382221'),(2,49,'2026-10-12 10:42:48.382221'),(2,50,'2026-10-12 10:42:48.382221'),(2,51,'2026-10-12 14:42:06.330491'),(2,52,'2026-10-12 14:42:06.330491'),(2,53,'2026-10-12 14:42:06.330491');
+INSERT INTO `role_permissions` VALUES (2,2,'2026-10-08 13:43:34.935167'),(2,3,'2026-10-08 13:43:34.935167'),(2,4,'2026-10-08 13:43:34.935167'),(2,5,'2026-10-08 13:43:34.935167'),(2,6,'2026-10-08 13:43:34.935167'),(2,7,'2026-10-08 13:43:34.935167'),(2,8,'2026-10-08 13:43:34.935167'),(2,9,'2026-10-08 13:43:34.935167'),(2,19,'2026-10-10 11:12:47.489710'),(2,20,'2026-10-10 11:12:47.489710'),(2,21,'2026-10-10 11:12:47.489710'),(2,22,'2026-10-10 11:12:47.489710'),(2,23,'2026-10-10 11:12:47.511209'),(2,24,'2026-10-10 11:12:47.511209'),(2,25,'2026-10-10 11:12:47.511209'),(2,26,'2026-10-10 11:12:47.511209'),(2,27,'2026-10-12 09:46:41.216988'),(2,28,'2026-10-12 09:46:41.216988'),(2,29,'2026-10-12 09:46:41.216988'),(2,30,'2026-10-12 09:46:41.216988'),(2,31,'2026-10-12 10:23:51.347989'),(2,32,'2026-10-12 10:23:51.347989'),(2,33,'2026-10-12 10:23:51.347989'),(2,34,'2026-10-12 10:23:51.347989'),(2,35,'2026-10-12 10:32:30.952486'),(2,36,'2026-10-12 10:32:30.952486'),(2,37,'2026-10-12 10:32:30.952486'),(2,38,'2026-10-12 10:32:30.952486'),(2,39,'2026-10-12 10:35:24.385537'),(2,40,'2026-10-12 10:35:24.385537'),(2,41,'2026-10-12 10:35:24.385537'),(2,42,'2026-10-12 10:35:24.385537'),(2,43,'2026-10-12 10:37:29.799139'),(2,44,'2026-10-12 10:37:29.799139'),(2,45,'2026-10-12 10:37:29.799139'),(2,46,'2026-10-12 10:37:29.799139'),(2,47,'2026-10-12 10:42:48.382221'),(2,48,'2026-10-12 10:42:48.382221'),(2,49,'2026-10-12 10:42:48.382221'),(2,50,'2026-10-12 10:42:48.382221'),(2,51,'2026-10-12 14:42:06.330491'),(2,52,'2026-10-12 14:42:06.330491'),(2,53,'2026-10-12 14:42:06.330491'),(2,54,'2026-10-17 13:17:59.918616'),(6,51,'2026-10-17 13:17:59.933946'),(6,52,'2026-10-17 13:17:59.933946');
 /*!40000 ALTER TABLE `role_permissions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -473,7 +511,7 @@ CREATE TABLE `roles` (
   `updated_at` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
   PRIMARY KEY (`id`),
   UNIQUE KEY `roles_name_guard_unique` (`name`,`guard_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -482,7 +520,7 @@ CREATE TABLE `roles` (
 
 LOCK TABLES `roles` WRITE;
 /*!40000 ALTER TABLE `roles` DISABLE KEYS */;
-INSERT INTO `roles` VALUES (2,'superadmin','web','Akses penuh untuk administrasi aplikasi','2026-10-08 12:43:35.508434','2026-10-08 12:43:35.508434');
+INSERT INTO `roles` VALUES (2,'superadmin','web','Akses penuh untuk administrasi aplikasi','2026-10-08 12:43:35.508434','2026-10-08 12:43:35.508434'),(6,'security','web','Petugas Security/CCTV per shift','2026-10-17 13:17:59.933689','2026-10-17 13:17:59.933689');
 /*!40000 ALTER TABLE `roles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -597,7 +635,7 @@ CREATE TABLE `user_store_roles` (
 
 LOCK TABLES `user_store_roles` WRITE;
 /*!40000 ALTER TABLE `user_store_roles` DISABLE KEYS */;
-INSERT INTO `user_store_roles` VALUES (3,2,'2026-10-09 14:54:26.407844'),(6,2,'2026-10-09 14:54:26.409012'),(11,2,'2026-10-09 14:54:26.408449');
+INSERT INTO `user_store_roles` VALUES (3,2,'2026-10-09 14:54:26.407844'),(6,2,'2026-10-09 14:54:26.409012'),(11,2,'2026-10-09 14:54:26.408449'),(13,6,'2026-10-17 13:17:59.938415'),(14,6,'2026-10-17 13:17:59.941414');
 /*!40000 ALTER TABLE `user_store_roles` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -612,6 +650,7 @@ CREATE TABLE `user_stores` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint(20) unsigned NOT NULL,
   `store_id` bigint(20) unsigned NOT NULL,
+  `default_shift_id` bigint(20) unsigned DEFAULT NULL,
   `is_default` tinyint(1) NOT NULL DEFAULT 0,
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `joined_at` datetime(6) DEFAULT NULL,
@@ -620,9 +659,11 @@ CREATE TABLE `user_stores` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_stores_user_store_unique` (`user_id`,`store_id`),
   KEY `user_stores_store_status_index` (`store_id`,`status`),
+  KEY `user_stores_default_shift_index` (`default_shift_id`),
+  CONSTRAINT `user_stores_default_shift_fk` FOREIGN KEY (`default_shift_id`) REFERENCES `master_shift` (`id`),
   CONSTRAINT `user_stores_store_fk` FOREIGN KEY (`store_id`) REFERENCES `stores` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `user_stores_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -631,7 +672,7 @@ CREATE TABLE `user_stores` (
 
 LOCK TABLES `user_stores` WRITE;
 /*!40000 ALTER TABLE `user_stores` DISABLE KEYS */;
-INSERT INTO `user_stores` VALUES (3,2,3,0,'active','2026-10-08 12:43:35.508773','2026-10-08 12:43:35.508773','2026-10-09 14:54:26.405814'),(6,2,5,1,'active','2026-10-09 14:52:24.169030','2026-10-09 14:52:24.169030','2026-10-09 14:54:26.408630'),(11,2,4,0,'active','2026-10-09 14:54:26.408077','2026-10-09 14:54:26.408077','2026-10-09 14:54:26.408077');
+INSERT INTO `user_stores` VALUES (3,2,3,NULL,0,'active','2026-10-08 12:43:35.508773','2026-10-08 12:43:35.508773','2026-10-09 14:54:26.405814'),(6,2,5,NULL,1,'active','2026-10-09 14:52:24.169030','2026-10-09 14:52:24.169030','2026-10-09 14:54:26.408630'),(11,2,4,NULL,0,'active','2026-10-09 14:54:26.408077','2026-10-09 14:54:26.408077','2026-10-09 14:54:26.408077'),(13,5,1,1,1,'active','2026-10-17 13:17:59.938136','2026-10-17 13:17:59.938136','2026-10-17 13:17:59.938136'),(14,6,1,2,1,'active','2026-10-17 13:17:59.941331','2026-10-17 13:17:59.941331','2026-10-17 13:17:59.941331');
 /*!40000 ALTER TABLE `user_stores` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -661,7 +702,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `users_email_unique` (`email`),
   KEY `users_status_index` (`status`),
   KEY `users_deleted_at_index` (`deleted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -670,7 +711,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (2,NULL,'Admin Security','admin','admin@mksiaga.local','$2y$10$lwkQLoTL4oDoSPj6oGHuL.bhCFZzZE3hfwul5dw6f738FrThFhov6',NULL,'active','2026-10-17 12:30:29.979900','2026-10-08 12:43:35.508585','2026-10-17 12:30:29.979900',NULL);
+INSERT INTO `users` VALUES (2,NULL,'Admin Security','admin','admin@mksiaga.local','$2y$10$lwkQLoTL4oDoSPj6oGHuL.bhCFZzZE3hfwul5dw6f738FrThFhov6',NULL,'active','2026-10-17 12:30:29.979900','2026-10-08 12:43:35.508585','2026-10-17 12:30:29.979900',NULL),(5,'SEC-DUMMY-001','Security Dummy 1 - Shift Pagi','security_dummy_1','security1@mksiaga.local','$2y$10$lwkQLoTL4oDoSPj6oGHuL.bhCFZzZE3hfwul5dw6f738FrThFhov6',NULL,'active',NULL,'2026-10-17 13:17:59.936007','2026-10-17 13:17:59.936007',NULL),(6,'SEC-DUMMY-002','Security Dummy 2 - Shift Siang','security_dummy_2','security2@mksiaga.local','$2y$10$lwkQLoTL4oDoSPj6oGHuL.bhCFZzZE3hfwul5dw6f738FrThFhov6',NULL,'active',NULL,'2026-10-17 13:17:59.941218','2026-10-17 13:17:59.941218',NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -691,4 +732,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-17 12:46:48
+-- Dump completed on 2026-10-17 13:18:24

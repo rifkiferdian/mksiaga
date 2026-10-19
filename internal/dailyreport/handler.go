@@ -30,6 +30,26 @@ func (h *Handler) Index(c *gin.Context) {
 	h.renderPage(c, "dailyreport/index.html", "Laporan Harian CCTV")
 }
 
+func (h *Handler) Recap(c *gin.Context) {
+	u, _ := auth.CurrentUser(c)
+	now := time.Now()
+	startDate := c.DefaultQuery("start_date", now.Format("2006-01")+"-01")
+	endDate := c.DefaultQuery("end_date", now.Format("2006-01-02"))
+	storeID, _ := strconv.ParseUint(c.Query("store_id"), 10, 64)
+	filter := RecapFilter{StartDate: startDate, EndDate: endDate, StoreID: storeID, Status: strings.TrimSpace(c.Query("status"))}
+	data, err := h.service.Recap(c.Request.Context(), filter)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	menus, err := h.navigation.Menus(c.Request.Context(), u, "daily-recap")
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	c.HTML(http.StatusOK, "dailyreport/recap.html", gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": "Rekap Laporan CCTV", "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "Menus": menus, "Data": data})
+}
+
 func (h *Handler) New(c *gin.Context) {
 	h.renderPage(c, "dailyreport/create.html", "Buat Laporan Harian CCTV")
 }
@@ -37,11 +57,49 @@ func (h *Handler) New(c *gin.Context) {
 func (h *Handler) renderPage(c *gin.Context, templateName, title string) {
 	u, _ := auth.CurrentUser(c)
 	storeID, err := strconv.ParseUint(u.StoreID, 10, 64)
+	userID, userErr := strconv.ParseUint(u.ID, 10, 64)
+	if err != nil || userErr != nil {
+		h.internalError(c, err)
+		return
+	}
+	data, err := h.service.PageData(c.Request.Context(), storeID, userID)
 	if err != nil {
 		h.internalError(c, err)
 		return
 	}
-	data, err := h.service.PageData(c.Request.Context(), storeID)
+	if !hasRole(u.RoleName, "superadmin") {
+		for i := range data.Reports {
+			data.Reports[i].CanReview = false
+		}
+	}
+	menus, err := h.navigation.Menus(c.Request.Context(), u, "daily-reports")
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	token, err := auth.CSRFToken(c)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	c.HTML(http.StatusOK, templateName, gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": title, "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CSRFToken": token, "Menus": menus, "Today": time.Now().Format("2006-01-02"), "MonitorSlots": []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"}, "Data": data, "SuccessMessage": message(c.Query("success")), "ErrorMessage": message(c.Query("error"))})
+}
+
+func (h *Handler) Workflow(c *gin.Context) {
+	u, _ := auth.CurrentUser(c)
+	storeID, e1 := strconv.ParseUint(u.StoreID, 10, 64)
+	userID, e2 := strconv.ParseUint(u.ID, 10, 64)
+	id, e3 := strconv.ParseUint(c.Param("id"), 10, 64)
+	if e1 != nil || e2 != nil || e3 != nil {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	report, err := h.service.WorkflowReport(c.Request.Context(), id)
+	if err != nil {
+		h.redirect(c, "error", "not-found")
+		return
+	}
+	data, err := h.service.PageData(c.Request.Context(), storeID, userID)
 	if err != nil {
 		h.internalError(c, err)
 		return
@@ -56,7 +114,82 @@ func (h *Handler) renderPage(c *gin.Context, templateName, title string) {
 		h.internalError(c, err)
 		return
 	}
-	c.HTML(http.StatusOK, templateName, gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": title, "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CSRFToken": token, "Menus": menus, "Today": time.Now().Format("2006-01-02"), "MonitorSlots": []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"}, "Data": data, "SuccessMessage": message(c.Query("success")), "ErrorMessage": message(c.Query("error"))})
+	c.HTML(http.StatusOK, "dailyreport/workflow.html", gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": "Proses Laporan CCTV", "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CanReview": hasRole(u.RoleName, "superadmin"), "CurrentUserID": userID, "CSRFToken": token, "Menus": menus, "Report": report, "Data": data, "SuccessMessage": message(c.Query("success")), "ErrorMessage": message(c.Query("error"))})
+}
+
+func (h *Handler) Print(c *gin.Context) {
+	u, _ := auth.CurrentUser(c)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	report, err := h.service.WorkflowReport(c.Request.Context(), id)
+	if err != nil {
+		h.redirect(c, "error", "not-found")
+		return
+	}
+	c.HTML(http.StatusOK, "dailyreport/print.html", gin.H{
+		"AppName": h.appName, "IsDashboard": true, "Authenticated": true,
+		"Title":    "Cetak Laporan CCTV " + report.ReportNumber,
+		"UserName": u.Name, "Report": report,
+	})
+}
+
+func (h *Handler) Receive(c *gin.Context) { h.workflowAction(c, true) }
+func (h *Handler) Review(c *gin.Context)  { h.workflowAction(c, false) }
+func (h *Handler) Revise(c *gin.Context) {
+	u, _ := auth.CurrentUser(c)
+	storeID, e1 := strconv.ParseUint(u.StoreID, 10, 64)
+	userID, e2 := strconv.ParseUint(u.ID, 10, 64)
+	id, e3 := strconv.ParseUint(c.Param("id"), 10, 64)
+	receiverID, e4 := strconv.ParseUint(c.PostForm("handover_to_user_id"), 10, 64)
+	if e1 != nil || e2 != nil || e3 != nil || e4 != nil {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	if err := h.service.Revise(c.Request.Context(), id, storeID, userID, receiverID, c.PostForm("handover_at"), c.PostForm("handover_notes"), c.PostForm("handover_from_signature")); err != nil {
+		code := "invalid"
+		if errors.Is(err, sql.ErrNoRows) {
+			code = "not-found"
+		}
+		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/reports/daily/%d/workflow?error=%s", id, url.QueryEscape(code)))
+		return
+	}
+	h.redirect(c, "success", "resubmitted")
+}
+func (h *Handler) workflowAction(c *gin.Context, receive bool) {
+	u, _ := auth.CurrentUser(c)
+	storeID, e1 := strconv.ParseUint(u.StoreID, 10, 64)
+	userID, e2 := strconv.ParseUint(u.ID, 10, 64)
+	id, e3 := strconv.ParseUint(c.Param("id"), 10, 64)
+	if e1 != nil || e2 != nil || e3 != nil {
+		h.redirect(c, "error", "invalid")
+		return
+	}
+	action := c.PostForm("action")
+	approve := action == "accept" || action == "approve"
+	var err error
+	if receive {
+		err = h.service.Receive(c.Request.Context(), id, storeID, userID, c.PostForm("handover_to_signature"), c.PostForm("notes"), approve)
+	} else {
+		err = h.service.Review(c.Request.Context(), id, userID, c.PostForm("notes"), approve)
+	}
+	if err != nil {
+		code := "invalid"
+		if errors.Is(err, sql.ErrNoRows) {
+			code = "not-found"
+		}
+		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/reports/daily/%d/workflow?error=%s", id, url.QueryEscape(code)))
+		return
+	}
+	result := "received"
+	if !approve {
+		result = "revision"
+	} else if !receive {
+		result = "approved"
+	}
+	h.redirect(c, "success", result)
 }
 
 func (h *Handler) Create(c *gin.Context) {
@@ -124,14 +257,12 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	u, _ := auth.CurrentUser(c)
-	storeID, e1 := strconv.ParseUint(u.StoreID, 10, 64)
 	id, e2 := strconv.ParseUint(c.Param("id"), 10, 64)
-	if e1 != nil || e2 != nil {
+	if e2 != nil {
 		h.redirect(c, "error", "invalid")
 		return
 	}
-	if err := h.service.Delete(c.Request.Context(), id, storeID); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			slog.Error("delete daily report", "error", err)
 		}
@@ -182,6 +313,14 @@ func initials(name string) string {
 	}
 	return value
 }
+func hasRole(roles, wanted string) bool {
+	for _, role := range strings.Split(roles, ",") {
+		if strings.TrimSpace(role) == wanted {
+			return true
+		}
+	}
+	return false
+}
 func message(code string) string {
-	return map[string]string{"created": "Laporan harian berhasil disimpan.", "deleted": "Laporan berhasil dihapus.", "invalid": "Data wajib laporan belum lengkap atau tidak valid.", "duplicate": "Laporan untuk tanggal dan shift tersebut sudah tersedia.", "not-found": "Laporan tidak ditemukan.", "failed": "Laporan gagal disimpan."}[code]
+	return map[string]string{"created": "Laporan harian berhasil disimpan.", "deleted": "Laporan berhasil dihapus.", "received": "Serah terima diterima dan diteruskan ke supervisor.", "approved": "Laporan disetujui dan dikunci.", "revision": "Laporan dikembalikan untuk diperbaiki.", "resubmitted": "Perbaikan laporan berhasil diajukan kembali.", "invalid": "Data wajib laporan belum lengkap atau tidak valid.", "duplicate": "Laporan untuk tanggal dan shift tersebut sudah tersedia.", "not-found": "Laporan tidak ditemukan atau statusnya sudah berubah.", "failed": "Laporan gagal disimpan."}[code]
 }

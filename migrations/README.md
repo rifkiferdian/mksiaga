@@ -104,6 +104,10 @@ Checklist, Jenis Insiden, dan Tindakan menggunakan master global.
 `000008_add_daily_report_signatures.up.sql` menambahkan penyimpanan tanda
 tangan digital petugas serah dan petugas terima pada laporan harian.
 
+`000009_add_daily_report_workflow.up.sql` menambahkan shift default petugas,
+status serah-terima dan verifikasi supervisor, waktu penerimaan/persetujuan,
+catatan koreksi, serta tabel riwayat perubahan status laporan.
+
 Aturan akses dan pengujian dijelaskan di
 [`internal/storescope/README.md`](../internal/storescope/README.md).
 
