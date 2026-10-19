@@ -111,6 +111,19 @@ catatan koreksi, serta tabel riwayat perubahan status laporan.
 Aturan akses dan pengujian dijelaskan di
 [`internal/storescope/README.md`](../internal/storescope/README.md).
 
+## Migrasi 000010: BLMKC
+
+`000010_create_blmkc.up.sql` membuat penyimpanan BLMKC yang memisahkan profil
+subjek global, kasus per store, keterlibatan subjek, barang, kendaraan, bukti
+privat, penyelesaian, riwayat kasus, dan audit akses. Status Wanted dan Identity
+merupakan tahapan pada kasus/profil yang sama sehingga perubahan status tidak
+membuat data pelaku baru.
+
+Kolom `nik_encrypted` harus diisi dengan hasil enkripsi dari aplikasi dan
+`nik_hash` dengan SHA-256 NIK yang telah dinormalisasi. Database tidak melakukan
+enkripsi otomatis. Berkas bukti tidak disimpan sebagai BLOB; tabel hanya
+menyimpan metadata dan lokasi berkas pada storage privat.
+
 ## Seed development
 
 `seeds/000001_development_superadmin.sql` membuat akun lokal `admin`, role `superadmin`, dan `Store Pusat`. Seed bersifat idempotent sehingga aman dijalankan ulang, tetapi akan mengembalikan password akun tersebut ke nilai development yang tercantum di dalam file.

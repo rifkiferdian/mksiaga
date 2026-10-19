@@ -1,0 +1,221 @@
+-- BLMKC menyimpan profil subjek secara global dan kasus per store.
+-- Data sensitif seperti NIK dienkripsi oleh aplikasi sebelum disimpan;
+-- nik_hash berisi SHA-256 untuk pencarian duplikasi tanpa membuka NIK asli.
+
+CREATE TABLE blmkc_subjects (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    subject_number VARCHAR(50) NOT NULL,
+    nik_encrypted VARCHAR(512) NULL,
+    nik_hash BINARY(32) NULL,
+    full_name VARCHAR(191) NULL,
+    birth_place VARCHAR(150) NULL,
+    birth_date DATE NULL,
+    gender VARCHAR(30) NULL,
+    address TEXT NULL,
+    phone VARCHAR(30) NULL,
+    occupation VARCHAR(150) NULL,
+    identity_status ENUM('unknown','partially_identified','identified','verified') NOT NULL DEFAULT 'unknown',
+    identification_notes TEXT NULL,
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    verified_by_user_id BIGINT UNSIGNED NULL,
+    verified_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    archived_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY blmkc_subjects_number_unique (subject_number),
+    UNIQUE KEY blmkc_subjects_nik_hash_unique (nik_hash),
+    KEY blmkc_subjects_name_index (full_name),
+    KEY blmkc_subjects_status_index (identity_status,archived_at),
+    CONSTRAINT blmkc_subjects_creator_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id),
+    CONSTRAINT blmkc_subjects_verifier_fk FOREIGN KEY (verified_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_subject_aliases (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    subject_id BIGINT UNSIGNED NOT NULL,
+    alias_name VARCHAR(191) NOT NULL,
+    notes VARCHAR(500) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY blmkc_subject_alias_unique (subject_id,alias_name),
+    KEY blmkc_subject_alias_name_index (alias_name),
+    CONSTRAINT blmkc_subject_alias_subject_fk FOREIGN KEY (subject_id) REFERENCES blmkc_subjects(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_cases (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_number VARCHAR(60) NOT NULL,
+    store_id BIGINT UNSIGNED NOT NULL,
+    source_incident_id BIGINT UNSIGNED NULL,
+    incident_type_id BIGINT UNSIGNED NULL,
+    area_id BIGINT UNSIGNED NULL,
+    camera_id BIGINT UNSIGNED NULL,
+    occurred_at DATETIME(6) NOT NULL,
+    reported_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    title VARCHAR(255) NOT NULL,
+    chronology TEXT NOT NULL,
+    case_status ENUM('draft','wanted','identified','apprehended','resolved','reported_to_police','archived') NOT NULL DEFAULT 'draft',
+    verification_status ENUM('draft','submitted','revision','verified','rejected') NOT NULL DEFAULT 'draft',
+    legal_status ENUM('not_reported','planned','reported','under_process','completed') NOT NULL DEFAULT 'not_reported',
+    loss_amount DECIMAL(15,2) NULL,
+    reported_by_user_id BIGINT UNSIGNED NOT NULL,
+    reviewed_by_user_id BIGINT UNSIGNED NULL,
+    reviewed_at DATETIME(6) NULL,
+    review_notes TEXT NULL,
+    closed_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    archived_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY blmkc_cases_number_unique (case_number),
+    UNIQUE KEY blmkc_cases_source_incident_unique (source_incident_id),
+    KEY blmkc_cases_store_status_index (store_id,case_status,occurred_at),
+    KEY blmkc_cases_verification_index (verification_status,reported_at),
+    KEY blmkc_cases_incident_type_index (incident_type_id),
+    CONSTRAINT blmkc_cases_store_fk FOREIGN KEY (store_id) REFERENCES stores(id),
+    CONSTRAINT blmkc_cases_source_incident_fk FOREIGN KEY (source_incident_id) REFERENCES daily_cctv_incidents(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_cases_incident_type_fk FOREIGN KEY (incident_type_id) REFERENCES master_jenis_insiden(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_cases_area_fk FOREIGN KEY (area_id) REFERENCES master_area(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_cases_camera_fk FOREIGN KEY (camera_id) REFERENCES master_kamera(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_cases_reporter_fk FOREIGN KEY (reported_by_user_id) REFERENCES users(id),
+    CONSTRAINT blmkc_cases_reviewer_fk FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_case_subjects (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    subject_id BIGINT UNSIGNED NOT NULL,
+    involvement_role ENUM('suspected','perpetrator','accomplice','witness','other') NOT NULL DEFAULT 'suspected',
+    allegation_status ENUM('unverified','identified','admitted','evidence_supported','legally_processed','cleared') NOT NULL DEFAULT 'unverified',
+    is_primary TINYINT(1) NOT NULL DEFAULT 0,
+    notes TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY blmkc_case_subject_unique (case_id,subject_id),
+    KEY blmkc_case_subject_subject_index (subject_id,allegation_status),
+    CONSTRAINT blmkc_case_subject_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE,
+    CONSTRAINT blmkc_case_subject_subject_fk FOREIGN KEY (subject_id) REFERENCES blmkc_subjects(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_case_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    item_name VARCHAR(191) NOT NULL,
+    brand VARCHAR(150) NULL,
+    quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+    estimated_value DECIMAL(15,2) NULL,
+    serial_number VARCHAR(150) NULL,
+    item_status ENUM('missing','recovered','returned','damaged','unknown') NOT NULL DEFAULT 'missing',
+    notes TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY blmkc_case_items_case_index (case_id,item_status),
+    KEY blmkc_case_items_serial_index (serial_number),
+    CONSTRAINT blmkc_case_items_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_vehicles (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    subject_id BIGINT UNSIGNED NULL,
+    vehicle_type VARCHAR(100) NULL,
+    brand VARCHAR(100) NULL,
+    model VARCHAR(100) NULL,
+    color VARCHAR(80) NULL,
+    license_plate VARCHAR(30) NULL,
+    license_plate_normalized VARCHAR(30) NULL,
+    notes TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY blmkc_vehicles_case_index (case_id),
+    KEY blmkc_vehicles_subject_index (subject_id),
+    KEY blmkc_vehicles_plate_index (license_plate_normalized),
+    CONSTRAINT blmkc_vehicles_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE,
+    CONSTRAINT blmkc_vehicles_subject_fk FOREIGN KEY (subject_id) REFERENCES blmkc_subjects(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_evidence_files (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    subject_id BIGINT UNSIGNED NULL,
+    file_category ENUM('subject_photo','identity_card','incident_photo','cctv_capture','vehicle_photo','stolen_item_photo','statement_letter','settlement_letter','police_report','case_resolution','other') NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    storage_path VARCHAR(500) NOT NULL,
+    mime_type VARCHAR(150) NOT NULL,
+    file_size BIGINT UNSIGNED NOT NULL,
+    file_hash BINARY(32) NOT NULL,
+    captured_at DATETIME(6) NULL,
+    description VARCHAR(500) NULL,
+    uploaded_by_user_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    deleted_at DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY blmkc_evidence_storage_path_unique (storage_path),
+    KEY blmkc_evidence_case_category_index (case_id,file_category,deleted_at),
+    KEY blmkc_evidence_subject_index (subject_id),
+    KEY blmkc_evidence_hash_index (file_hash),
+    CONSTRAINT blmkc_evidence_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE,
+    CONSTRAINT blmkc_evidence_subject_fk FOREIGN KEY (subject_id) REFERENCES blmkc_subjects(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_evidence_uploader_fk FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_case_resolutions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    resolution_type ENUM('warning','statement','settlement','compensation','handed_to_police','other') NOT NULL,
+    resolution_date DATETIME(6) NOT NULL,
+    summary TEXT NOT NULL,
+    police_report_number VARCHAR(150) NULL,
+    police_station VARCHAR(191) NULL,
+    compensation_amount DECIMAL(15,2) NULL,
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    verified_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY blmkc_resolutions_case_date_index (case_id,resolution_date),
+    KEY blmkc_resolutions_police_number_index (police_report_number),
+    CONSTRAINT blmkc_resolutions_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE,
+    CONSTRAINT blmkc_resolutions_creator_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id),
+    CONSTRAINT blmkc_resolutions_verifier_fk FOREIGN KEY (verified_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_case_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    case_id BIGINT UNSIGNED NOT NULL,
+    actor_user_id BIGINT UNSIGNED NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    from_status VARCHAR(30) NULL,
+    to_status VARCHAR(30) NULL,
+    notes TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY blmkc_case_events_case_date_index (case_id,created_at),
+    KEY blmkc_case_events_actor_index (actor_user_id,created_at),
+    CONSTRAINT blmkc_case_events_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE CASCADE,
+    CONSTRAINT blmkc_case_events_actor_fk FOREIGN KEY (actor_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE blmkc_access_logs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NULL,
+    store_id BIGINT UNSIGNED NULL,
+    subject_id BIGINT UNSIGNED NULL,
+    case_id BIGINT UNSIGNED NULL,
+    action ENUM('view_subject','view_case','download_evidence','print_case','export_data') NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(500) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY blmkc_access_logs_user_date_index (user_id,created_at),
+    KEY blmkc_access_logs_case_date_index (case_id,created_at),
+    KEY blmkc_access_logs_subject_date_index (subject_id,created_at),
+    CONSTRAINT blmkc_access_logs_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_access_logs_store_fk FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_access_logs_subject_fk FOREIGN KEY (subject_id) REFERENCES blmkc_subjects(id) ON DELETE SET NULL,
+    CONSTRAINT blmkc_access_logs_case_fk FOREIGN KEY (case_id) REFERENCES blmkc_cases(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

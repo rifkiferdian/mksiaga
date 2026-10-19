@@ -37,6 +37,11 @@ var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Laporan", key: "daily-reports", label: "Laporan Harian CCTV", url: "/reports/daily", permission: "daily-reports.view"},
 	{group: "Laporan", key: "daily-recap", label: "Rekap Laporan CCTV", url: "/reports/recap", permission: "daily-reports.view"},
+	{group: "Keamanan", parent: "blmkc", key: "blmkc-dashboard", label: "Dashboard", url: "/blmkc", permission: "blmkc.view"},
+	{group: "Keamanan", parent: "blmkc", key: "blmkc-cases", label: "Daftar Kasus", url: "/blmkc/cases", permission: "blmkc.view"},
+	{group: "Keamanan", parent: "blmkc", key: "blmkc-wanted", label: "Wanted", url: "/blmkc/wanted", permission: "blmkc.view"},
+	{group: "Keamanan", parent: "blmkc", key: "blmkc-identity", label: "Identity", url: "/blmkc/identity", permission: "blmkc.view"},
+	{group: "Keamanan", parent: "blmkc", key: "blmkc-verification", label: "Verifikasi", url: "/blmkc/verification", permission: "blmkc.review"},
 	{group: "Master Data", parent: "master", key: "stores", label: "Store", url: "/master/stores", permission: "stores.view"},
 	{group: "Master Aplikasi", parent: "appmaster", key: "areas", label: "Area", url: "/master/areas", permission: "areas.view"},
 	{group: "Master Aplikasi", parent: "appmaster", key: "cameras", label: "Kamera", url: "/master/cameras", permission: "cameras.view"},
@@ -142,6 +147,19 @@ func (s *Service) Menus(ctx context.Context, user auth.SessionUser, activePage s
 			open = open || item.Active
 		}
 		groups[index].Items = append(groups[index].Items, Item{Key: "appmaster", Label: "Master Aplikasi", Open: open, Active: open, Children: appMasterItems})
+	}
+	if blmkcItems := children["blmkc"]; len(blmkcItems) > 0 {
+		index, exists := indexes["Keamanan"]
+		if !exists {
+			index = len(groups)
+			indexes["Keamanan"] = index
+			groups = append(groups, Group{Label: "Keamanan"})
+		}
+		open := false
+		for _, item := range blmkcItems {
+			open = open || item.Active
+		}
+		groups[index].Items = append(groups[index].Items, Item{Key: "blmkc", Label: "BLMKC", Open: open, Active: open, Children: blmkcItems})
 	}
 	return groups, nil
 }

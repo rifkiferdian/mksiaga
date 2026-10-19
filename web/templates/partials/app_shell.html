@@ -12,6 +12,7 @@
         {{if eq .Key "access"}}<i class="fa-solid fa-shield size-5 shrink-0" aria-hidden="true"></i>{{end}}
         {{if eq .Key "master"}}<i class="fa-solid fa-store size-5 shrink-0" aria-hidden="true"></i>{{end}}
         {{if eq .Key "appmaster"}}<i class="fa-solid fa-gears size-5 shrink-0" aria-hidden="true"></i>{{end}}
+        {{if eq .Key "blmkc"}}<i class="fa-solid fa-shield-halved size-5 shrink-0" aria-hidden="true"></i>{{end}}
         <span class="flex-1">{{.Label}}</span>
         <i data-sidebar-chevron class="fa-solid fa-chevron-down size-4 transition-transform {{if .Open}}rotate-180{{end}}" aria-hidden="true"></i>
       </button>
@@ -28,6 +29,11 @@
           {{if eq .Key "checklists"}}<i class="fa-solid fa-list-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "incident-types"}}<i class="fa-solid fa-triangle-exclamation size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{if eq .Key "actions"}}<i class="fa-solid fa-bolt size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "blmkc-dashboard"}}<i class="fa-solid fa-chart-pie size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "blmkc-cases"}}<i class="fa-solid fa-folder-open size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "blmkc-wanted"}}<i class="fa-solid fa-magnifying-glass size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "blmkc-identity"}}<i class="fa-solid fa-address-card size-5 shrink-0" aria-hidden="true"></i>{{end}}
+          {{if eq .Key "blmkc-verification"}}<i class="fa-solid fa-clipboard-check size-5 shrink-0" aria-hidden="true"></i>{{end}}
           {{.Label}}
         </a>
         {{end}}

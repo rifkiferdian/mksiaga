@@ -14,6 +14,7 @@ import (
 	actionManagement "mksiaga/internal/action"
 	areaManagement "mksiaga/internal/area"
 	"mksiaga/internal/auth"
+	"mksiaga/internal/blmkc"
 	cameraManagement "mksiaga/internal/camera"
 	checklistManagement "mksiaga/internal/checklist"
 	"mksiaga/internal/config"
@@ -89,6 +90,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		cameraHandler := cameraManagement.NewHandler(cfg.AppName, cameraManagement.NewService(cameraManagement.NewRepository(db)), navigationService)
 		checklistHandler := checklistManagement.NewHandler(cfg.AppName, checklistManagement.NewService(checklistManagement.NewRepository(db)), navigationService)
 		dailyReportHandler := dailyreport.NewHandler(cfg.AppName, dailyreport.NewService(dailyreport.NewRepository(db)), navigationService)
+		blmkcHandler := blmkc.NewHandler(cfg.AppName, blmkc.NewService(blmkc.NewRepository(db)), navigationService)
 		incidentTypeHandler := incidentTypeManagement.NewHandler(cfg.AppName, incidentTypeManagement.NewService(incidentTypeManagement.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
@@ -107,6 +109,13 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		reports.POST("/daily/:id/revise", auth.RequirePermission(db, "daily-reports.create"), dailyReportHandler.Revise)
 		reports.POST("/daily/:id/review", auth.RequirePermission(db, "daily-reports.review"), dailyReportHandler.Review)
 		reports.POST("/daily/:id/delete", auth.RequirePermission(db, "daily-reports.delete"), dailyReportHandler.Delete)
+		blmkcRoutes := authorized.Group("/blmkc")
+		blmkcRoutes.Use(storescope.Middleware(db))
+		blmkcRoutes.GET("", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Dashboard)
+		blmkcRoutes.GET("/cases", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Cases)
+		blmkcRoutes.GET("/wanted", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Wanted)
+		blmkcRoutes.GET("/identity", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Identities)
+		blmkcRoutes.GET("/verification", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.Verifications)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
 		authorized.POST("/profile/password", profileHandler.UpdatePassword)
