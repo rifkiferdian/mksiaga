@@ -647,3 +647,40 @@ document.getElementById("form-laporan")?.addEventListener("submit", (event) => {
     pads.find((canvas) => canvas.dataset.signed !== "true")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 });
+
+const blmkcStore = document.getElementById("blmkcStore");
+const blmkcScopedSelects = [...document.querySelectorAll("[data-blmkc-store-option]")];
+function filterBLMKCStoreOptions(resetInvalid = false) {
+  if (!blmkcStore) return;
+  const storeID = blmkcStore.value;
+  blmkcScopedSelects.forEach((select) => {
+    [...select.options].forEach((option) => {
+      if (!option.dataset.storeId) return;
+      option.hidden = option.dataset.storeId !== storeID;
+      option.disabled = option.hidden;
+    });
+    const selected = select.selectedOptions[0];
+    if (resetInvalid && selected?.disabled) select.value = "";
+  });
+}
+blmkcStore?.addEventListener("change", () => filterBLMKCStoreOptions(true));
+filterBLMKCStoreOptions();
+
+const statusDialog = document.querySelector("[data-status-dialog]");
+document.querySelector("[data-status-dialog-open]")?.addEventListener("click", () => {
+  statusDialog?.classList.remove("hidden");
+  statusDialog?.classList.add("flex");
+  statusDialog?.querySelector("input:not([type=hidden]), textarea")?.focus();
+});
+statusDialog?.querySelectorAll("[data-status-dialog-close]").forEach((button) => {
+  button.addEventListener("click", () => {
+    statusDialog.classList.add("hidden");
+    statusDialog.classList.remove("flex");
+  });
+});
+statusDialog?.addEventListener("click", (event) => {
+  if (event.target === statusDialog) {
+    statusDialog.classList.add("hidden");
+    statusDialog.classList.remove("flex");
+  }
+});

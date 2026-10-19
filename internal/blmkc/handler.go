@@ -1,8 +1,11 @@
 package blmkc
 
 import (
+	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -43,7 +46,9 @@ func (h *Handler) Cases(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	h.render(c, "blmkc/cases.html", "Daftar Kasus BLMKC", "blmkc-cases", gin.H{"Data": data})
+	h.render(c, "blmkc/cases.html", "Daftar Kasus BLMKC", "blmkc-cases", gin.H{
+		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
 }
 
 func (h *Handler) Wanted(c *gin.Context) {
@@ -71,6 +76,189 @@ func (h *Handler) Verifications(c *gin.Context) {
 		return
 	}
 	h.render(c, "blmkc/verification.html", "Verifikasi BLMKC", "blmkc-verification", gin.H{"Data": data})
+}
+
+func (h *Handler) NewCase(c *gin.Context) {
+	data, err := h.service.CaseForm(c.Request.Context(), 0)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/form.html", "Tambah Kasus BLMKC", "blmkc-cases", gin.H{"Data": data})
+}
+
+func (h *Handler) CreateCase(c *gin.Context) {
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		h.redirectCases(c, "error", "csrf")
+		return
+	}
+	current, _ := auth.CurrentUser(c)
+	userID, err := strconv.ParseUint(current.ID, 10, 64)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	id, err := h.service.CreateCase(c.Request.Context(), caseFormInput(c), userID)
+	if err != nil {
+		h.redirectServiceError(c, "/blmkc/cases", err)
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"?success=created")
+}
+
+func (h *Handler) CaseDetail(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	data, err := h.service.CaseDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/detail.html", "Detail Kasus BLMKC", "blmkc-cases", gin.H{
+		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
+}
+
+func (h *Handler) EditCase(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	data, err := h.service.CaseForm(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/form.html", "Edit Kasus BLMKC", "blmkc-cases", gin.H{"Data": data})
+}
+
+func (h *Handler) UpdateCase(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		h.redirectCase(c, id, "error", "csrf")
+		return
+	}
+	current, _ := auth.CurrentUser(c)
+	userID, err := strconv.ParseUint(current.ID, 10, 64)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	if err := h.service.UpdateCase(c.Request.Context(), id, userID, caseFormInput(c)); err != nil {
+		h.redirectServiceError(c, "/blmkc/cases/"+strconv.FormatUint(id, 10), err)
+		return
+	}
+	h.redirectCase(c, id, "success", "updated")
+}
+
+func (h *Handler) AdvanceStatus(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		h.redirectCase(c, id, "error", "csrf")
+		return
+	}
+	current, _ := auth.CurrentUser(c)
+	userID, err := strconv.ParseUint(current.ID, 10, 64)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	err = h.service.AdvanceStatus(c.Request.Context(), id, userID, c.PostForm("subject_name"), c.PostForm("notes"))
+	if err != nil {
+		h.redirectServiceError(c, "/blmkc/cases/"+strconv.FormatUint(id, 10), err)
+		return
+	}
+	h.redirectCase(c, id, "success", "status-updated")
+}
+
+func caseFormInput(c *gin.Context) CaseInput {
+	storeID, _ := strconv.ParseUint(c.PostForm("store_id"), 10, 64)
+	return CaseInput{
+		StoreID: storeID, IncidentTypeID: optionalUint(c.PostForm("incident_type_id")),
+		AreaID: optionalUint(c.PostForm("area_id")), CameraID: optionalUint(c.PostForm("camera_id")),
+		OccurredAt: c.PostForm("occurred_at"), Title: c.PostForm("title"), Chronology: c.PostForm("chronology"),
+		LossAmount: optionalFloat(c.PostForm("loss_amount")), SubjectName: c.PostForm("subject_name"), InitialStatus: c.PostForm("initial_status"),
+	}
+}
+
+func optionalUint(value string) *uint64 {
+	parsed, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
+	if err != nil || parsed == 0 {
+		return nil
+	}
+	return &parsed
+}
+
+func optionalFloat(value string) *float64 {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		invalid := -1.0
+		return &invalid
+	}
+	return &parsed
+}
+
+func caseRouteID(c *gin.Context) (uint64, bool) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	return id, err == nil && id > 0
+}
+
+func (h *Handler) redirectServiceError(c *gin.Context, path string, err error) {
+	code := "failed"
+	switch {
+	case errors.Is(err, ErrInvalid):
+		code = "invalid"
+	case errors.Is(err, ErrInvalidTransition):
+		code = "invalid-transition"
+	case errors.Is(err, ErrSubjectRequired):
+		code = "subject-required"
+	case errors.Is(err, sql.ErrNoRows):
+		code = "not-found"
+	default:
+		slog.Error("BLMKC operation failed", "error", err)
+	}
+	c.Redirect(http.StatusSeeOther, path+"?error="+url.QueryEscape(code))
+}
+
+func (h *Handler) redirectCases(c *gin.Context, key, value string) {
+	c.Redirect(http.StatusSeeOther, "/blmkc/cases?"+key+"="+url.QueryEscape(value))
+}
+
+func (h *Handler) redirectCase(c *gin.Context, id uint64, key, value string) {
+	c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"?"+key+"="+url.QueryEscape(value))
+}
+
+func caseMessage(code string) string {
+	return map[string]string{
+		"created": "Kasus berhasil dibuat.", "updated": "Kasus berhasil diperbarui.", "status-updated": "Status kasus berhasil diperbarui.",
+		"csrf": "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
+		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
+		"not-found": "Kasus tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
+	}[code]
 }
 
 func (h *Handler) render(c *gin.Context, templateName, title, activePage string, data gin.H) {

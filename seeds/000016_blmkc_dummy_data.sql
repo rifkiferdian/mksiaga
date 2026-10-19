@@ -41,9 +41,6 @@ SET @store_3=(SELECT id FROM stores WHERE code='MK3' AND deleted_at IS NULL LIMI
 SET @store_4=(SELECT id FROM stores WHERE code='MK4' AND deleted_at IS NULL LIMIT 1);
 SET @store_5=(SELECT id FROM stores WHERE code='MK5' AND deleted_at IS NULL LIMIT 1);
 SET @theft_type=(SELECT id FROM master_jenis_insiden WHERE code='THEFT' LIMIT 1);
-SET @suspicious_type=(SELECT id FROM master_jenis_insiden WHERE code='SUSPICIOUS' LIMIT 1);
-SET @damage_type=(SELECT id FROM master_jenis_insiden WHERE code='PROPERTY_DAMAGE' LIMIT 1);
-SET @fraud_type=(SELECT id FROM master_jenis_insiden WHERE code='INTERNAL_FRAUD' LIMIT 1);
 
 INSERT INTO blmkc_cases (
     case_number,store_id,incident_type_id,area_id,occurred_at,reported_at,title,chronology,
@@ -59,8 +56,8 @@ INSERT INTO blmkc_cases (
     case_number,store_id,incident_type_id,area_id,occurred_at,reported_at,title,chronology,
     case_status,verification_status,legal_status,loss_amount,reported_by_user_id,reviewed_by_user_id,reviewed_at,review_notes,closed_at,archived_at
 ) VALUES (
-    'DEMO-BLMKC-2026-002',@store_2,@suspicious_type,(SELECT id FROM master_area WHERE store_id=@store_2 AND code='ENTRANCE_EXIT' LIMIT 1),
-    '2026-10-11 14:10:00','2026-10-11 14:40:00','Percobaan membawa barang tanpa pembayaran','DATA DUMMY: Subjek telah dikenali dari informasi petugas, tetapi belum berhasil diamankan.',
+    'DEMO-BLMKC-2026-002',@store_2,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_2 AND code='ENTRANCE_EXIT' LIMIT 1),
+    '2026-10-11 14:10:00','2026-10-11 14:40:00','Percobaan pencurian barang toko','DATA DUMMY: Subjek mencoba membawa barang tanpa pembayaran, telah dikenali, tetapi belum berhasil diamankan.',
     'identified','verified','not_reported',225000,@creator_id,@creator_id,'2026-10-11 16:00:00','Identitas contoh telah dicocokkan.',NULL,NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_2=LAST_INSERT_ID();
@@ -79,8 +76,8 @@ INSERT INTO blmkc_cases (
     case_number,store_id,incident_type_id,area_id,occurred_at,reported_at,title,chronology,
     case_status,verification_status,legal_status,loss_amount,reported_by_user_id,reviewed_by_user_id,reviewed_at,review_notes,closed_at,archived_at
 ) VALUES (
-    'DEMO-BLMKC-2026-004',@store_4,@damage_type,(SELECT id FROM master_area WHERE store_id=@store_4 AND code='PARKING' LIMIT 1),
-    '2026-10-13 09:30:00','2026-10-13 10:00:00','Kerusakan fasilitas area parkir','DATA DUMMY: Subjek mengakui kerusakan dan menyelesaikan penggantian biaya melalui kesepakatan tertulis.',
+    'DEMO-BLMKC-2026-004',@store_4,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_4 AND code='HIGH_VALUE' LIMIT 1),
+    '2026-10-13 09:30:00','2026-10-13 10:00:00','Pencurian produk bernilai tinggi','DATA DUMMY: Subjek mengakui pengambilan barang dan menyelesaikan penggantian biaya melalui kesepakatan tertulis.',
     'resolved','verified','completed',750000,@creator_id,@creator_id,'2026-10-13 13:00:00','Penyelesaian contoh telah diverifikasi.','2026-10-14 10:00:00',NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_4=LAST_INSERT_ID();
@@ -89,8 +86,8 @@ INSERT INTO blmkc_cases (
     case_number,store_id,incident_type_id,area_id,occurred_at,reported_at,title,chronology,
     case_status,verification_status,legal_status,loss_amount,reported_by_user_id,reviewed_by_user_id,reviewed_at,review_notes,closed_at,archived_at
 ) VALUES (
-    'DEMO-BLMKC-2026-005',@store_5,@fraud_type,(SELECT id FROM master_area WHERE store_id=@store_5 AND code='STOCKROOM' LIMIT 1),
-    '2026-10-14 16:45:00','2026-10-14 18:00:00','Selisih barang gudang terindikasi fraud','DATA DUMMY: Pemeriksaan internal menemukan rangkaian pengeluaran barang tanpa dokumen pendukung.',
+    'DEMO-BLMKC-2026-005',@store_5,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_5 AND code='STOCKROOM' LIMIT 1),
+    '2026-10-14 16:45:00','2026-10-14 18:00:00','Pencurian stok barang gudang','DATA DUMMY: Pemeriksaan internal menemukan pengambilan stok barang tanpa dokumen pendukung.',
     'reported_to_police','verified','reported',2400000,@creator_id,@creator_id,'2026-10-15 09:00:00','Kasus contoh diteruskan untuk proses hukum.',NULL,NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_5=LAST_INSERT_ID();
@@ -112,7 +109,7 @@ INSERT INTO blmkc_case_items(case_id,item_name,brand,quantity,estimated_value,it
 (@case_1,'Produk kosmetik demo','Merek Dummy',2,350000,'missing','Barang fiktif untuk demonstrasi.'),
 (@case_2,'Produk kebutuhan rumah tangga demo','Merek Dummy',3,225000,'recovered','Barang fiktif ditemukan kembali.'),
 (@case_3,'Aksesori ponsel demo','Merek Dummy',2,180000,'returned','Barang fiktif dikembalikan.'),
-(@case_4,'Palang parkir demo',NULL,1,750000,'damaged','Fasilitas fiktif telah diperbaiki.'),
+(@case_4,'Produk elektronik demo','Merek Dummy',1,750000,'returned','Barang fiktif telah dikembalikan.'),
 (@case_5,'Stok produk gudang demo','Merek Dummy',12,2400000,'missing','Selisih stok fiktif untuk demonstrasi.');
 
 INSERT INTO blmkc_vehicles(case_id,subject_id,vehicle_type,brand,model,color,license_plate,license_plate_normalized,notes) VALUES

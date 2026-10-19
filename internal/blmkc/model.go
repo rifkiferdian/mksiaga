@@ -98,3 +98,90 @@ type VerificationData struct {
 	Verified  int
 	Rejected  int
 }
+
+type FormOption struct {
+	ID      uint64
+	StoreID uint64
+	Code    string
+	Name    string
+}
+
+type CaseInput struct {
+	StoreID        uint64
+	IncidentTypeID *uint64
+	AreaID         *uint64
+	CameraID       *uint64
+	OccurredAt     string
+	Title          string
+	Chronology     string
+	LossAmount     *float64
+	SubjectName    string
+	InitialStatus  string
+}
+
+type CaseFormData struct {
+	Case                   CaseInput
+	CaseID                 uint64
+	CaseNumber             string
+	SelectedIncidentTypeID uint64
+	SelectedAreaID         uint64
+	SelectedCameraID       uint64
+	Stores                 []FormOption
+	IncidentTypes          []FormOption
+	Areas                  []FormOption
+	Cameras                []FormOption
+	IsEdit                 bool
+}
+
+type CaseItemDetail struct {
+	Name, Brand, Quantity, Value, Status, Notes string
+}
+
+type VehicleDetail struct {
+	Type, Brand, Model, Color, Plate, Notes string
+}
+
+type EvidenceDetail struct {
+	ID                                         uint64
+	Category, Filename, Description, CreatedAt string
+}
+
+type ResolutionDetail struct {
+	Type, Date, Summary, PoliceNumber, PoliceStation, Compensation string
+}
+
+type EventDetail struct {
+	Actor, EventType, FromStatus, ToStatus, Notes, CreatedAt string
+}
+
+type CaseDetail struct {
+	ID                    uint64
+	CaseNumber            string
+	StoreID               uint64
+	StoreName             string
+	Title                 string
+	Chronology            string
+	OccurredAt            string
+	ReportedAt            string
+	CaseStatus            string
+	VerificationStatus    string
+	LegalStatus           string
+	LossAmount            string
+	IncidentType          string
+	AreaName              string
+	CameraName            string
+	ReporterName          string
+	ReviewerName          string
+	SubjectID             uint64
+	SubjectNumber         string
+	SubjectName           string
+	SubjectIdentityStatus string
+	SubjectAliases        string
+	CanAdvance            bool
+	NextStatus            string
+	Items                 []CaseItemDetail
+	Vehicles              []VehicleDetail
+	Evidence              []EvidenceDetail
+	Resolutions           []ResolutionDetail
+	Events                []EventDetail
+}
