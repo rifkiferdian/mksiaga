@@ -124,6 +124,17 @@ Kolom `nik_encrypted` harus diisi dengan hasil enkripsi dari aplikasi dan
 enkripsi otomatis. Berkas bukti tidak disimpan sebagai BLOB; tabel hanya
 menyimpan metadata dan lokasi berkas pada storage privat.
 
+## Migrasi 000011: verifikasi bukti BLMKC
+
+`000011_add_blmkc_evidence_verification.up.sql` menambahkan kategori video CCTV
+dan status verifikasi bukti. File fisik tetap disimpan pada storage privat;
+database menyimpan metadata, hash SHA-256, pemeriksa, waktu pemeriksaan, dan
+catatan verifikasi.
+
+`000012_add_blmkc_evidence_audit_action.up.sql` menambahkan jenis audit khusus
+untuk preview bukti. Preview dan unduhan dicatat terpisah pada
+`blmkc_access_logs`.
+
 ## Seed development
 
 `seeds/000001_development_superadmin.sql` membuat akun lokal `admin`, role `superadmin`, dan `Store Pusat`. Seed bersifat idempotent sehingga aman dijalankan ulang, tetapi akan mengembalikan password akun tersebut ke nilai development yang tercantum di dalam file.

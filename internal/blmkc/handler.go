@@ -257,7 +257,10 @@ func caseMessage(code string) string {
 		"created": "Kasus berhasil dibuat.", "updated": "Kasus berhasil diperbarui.", "status-updated": "Status kasus berhasil diperbarui.",
 		"csrf": "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
 		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
-		"not-found": "Kasus tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
+		"evidence-uploaded": "Bukti CCTV berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
+		"invalid-evidence":   "File bukti tidak valid. Gunakan JPG, PNG, WebP, MP4, atau WebM.",
+		"evidence-too-large": "Ukuran bukti melebihi batas: foto 10 MB atau video 150 MB.",
+		"not-found":          "Kasus atau bukti tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
 	}[code]
 }
 

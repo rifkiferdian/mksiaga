@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -67,6 +68,16 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	if cfg.Maintenance.Enabled {
 		r.Use(httperror.Maintenance(cfg.AppName, cfg.Maintenance.Message))
 	}
+	r.Use(func(c *gin.Context) {
+		if c.Request.Body != nil && c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
+			limit := int64(2 << 20)
+			if strings.HasPrefix(c.Request.URL.Path, "/blmkc/cases/") && strings.HasSuffix(c.Request.URL.Path, "/evidence") {
+				limit = 151 << 20
+			}
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+		}
+		c.Next()
+	})
 	r.Use(auth.RequireCSRF())
 	var authService *auth.Service
 	if db != nil {
@@ -119,6 +130,10 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		blmkcRoutes.GET("/cases/:id/edit", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.EditCase)
 		blmkcRoutes.POST("/cases/:id/update", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.UpdateCase)
 		blmkcRoutes.POST("/cases/:id/advance-status", auth.RequirePermission(db, "blmkc.change-status"), blmkcHandler.AdvanceStatus)
+		blmkcRoutes.POST("/cases/:id/evidence", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.UploadEvidence)
+		blmkcRoutes.GET("/cases/:id/evidence/:evidenceID/preview", auth.RequirePermission(db, "blmkc.download-evidence"), blmkcHandler.PreviewEvidence)
+		blmkcRoutes.GET("/cases/:id/evidence/:evidenceID/download", auth.RequirePermission(db, "blmkc.download-evidence"), blmkcHandler.DownloadEvidence)
+		blmkcRoutes.POST("/cases/:id/evidence/:evidenceID/verify", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.VerifyEvidence)
 		blmkcRoutes.GET("/wanted", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Wanted)
 		blmkcRoutes.GET("/identity", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Identities)
 		blmkcRoutes.GET("/verification", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.Verifications)

@@ -1,5 +1,7 @@
 package blmkc
 
+import "time"
+
 type Summary struct {
 	Total          int
 	Wanted         int
@@ -142,8 +144,22 @@ type VehicleDetail struct {
 }
 
 type EvidenceDetail struct {
-	ID                                         uint64
-	Category, Filename, Description, CreatedAt string
+	ID                                                    uint64
+	FileSize                                              uint64
+	Category, Filename, Description, CreatedAt, SizeLabel string
+	MIMEType, VerificationStatus, VerificationNotes       string
+}
+
+type EvidenceFile struct {
+	ID, CaseID, StoreID, FileSize             uint64
+	Category, Filename, StoragePath, MIMEType string
+}
+
+type EvidenceInput struct {
+	CaseID, SubjectID, UserID, FileSize                    uint64
+	Category, Filename, StoragePath, MIMEType, Description string
+	FileHash                                               []byte
+	CapturedAt                                             *time.Time
 }
 
 type ResolutionDetail struct {

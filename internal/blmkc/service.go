@@ -90,6 +90,36 @@ func (s *Service) AdvanceStatus(ctx context.Context, id, userID uint64, subjectN
 	return s.repository.AdvanceStatus(ctx, id, userID, subjectName, notes)
 }
 
+func (s *Service) EvidenceUploadContext(ctx context.Context, caseID uint64) (uint64, error) {
+	return s.repository.EvidenceUploadContext(ctx, caseID)
+}
+
+func (s *Service) CreateEvidence(ctx context.Context, input EvidenceInput) error {
+	input.Description = strings.TrimSpace(input.Description)
+	if input.CaseID == 0 || input.SubjectID == 0 || input.UserID == 0 || input.FileSize == 0 ||
+		input.Category == "" || input.Filename == "" || input.StoragePath == "" || input.MIMEType == "" ||
+		len(input.FileHash) != 32 || utf8.RuneCountInString(input.Description) > 500 {
+		return ErrInvalid
+	}
+	return s.repository.CreateEvidence(ctx, input)
+}
+
+func (s *Service) Evidence(ctx context.Context, caseID, evidenceID uint64) (EvidenceFile, error) {
+	return s.repository.Evidence(ctx, caseID, evidenceID)
+}
+
+func (s *Service) VerifyEvidence(ctx context.Context, caseID, evidenceID, userID uint64, approve bool, notes string) error {
+	notes = strings.TrimSpace(notes)
+	if caseID == 0 || evidenceID == 0 || userID == 0 || utf8.RuneCountInString(notes) > 500 || (!approve && notes == "") {
+		return ErrInvalid
+	}
+	return s.repository.VerifyEvidence(ctx, caseID, evidenceID, userID, approve, notes)
+}
+
+func (s *Service) LogEvidenceAccess(ctx context.Context, userID, storeID, caseID uint64, action, ipAddress, userAgent string) error {
+	return s.repository.LogEvidenceAccess(ctx, userID, storeID, caseID, action, ipAddress, userAgent)
+}
+
 func (s *Service) normalizeCase(ctx context.Context, input CaseInput, creating bool) (CaseInput, error) {
 	input.Title = strings.TrimSpace(input.Title)
 	input.Chronology = strings.TrimSpace(input.Chronology)
