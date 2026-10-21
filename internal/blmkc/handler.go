@@ -69,6 +69,26 @@ func (h *Handler) Identities(c *gin.Context) {
 	h.render(c, "blmkc/identity.html", "Identity BLMKC", "blmkc-identity", gin.H{"Data": data})
 }
 
+func (h *Handler) IdentityDetail(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	data, err := h.service.IdentityDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/identity_detail.html", "Detail Identity BLMKC", "blmkc-identity", gin.H{
+		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
+}
+
 func (h *Handler) Verifications(c *gin.Context) {
 	data, err := h.service.Verifications(c.Request.Context(), strings.TrimSpace(c.Query("q")), strings.TrimSpace(c.Query("status")))
 	if err != nil {
@@ -278,9 +298,15 @@ func caseMessage(code string) string {
 		"csrf": "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
 		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
 		"evidence-uploaded": "Bukti CCTV berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
-		"invalid-evidence":   "File bukti tidak valid. Gunakan JPG, PNG, WebP, MP4, atau WebM.",
-		"evidence-too-large": "Ukuran bukti melebihi batas: foto 10 MB atau video 150 MB.",
-		"not-found":          "Kasus atau bukti tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
+		"invalid-evidence":            "File bukti tidak valid. Gunakan JPG, PNG, WebP, MP4, atau WebM.",
+		"evidence-too-large":          "Ukuran bukti melebihi batas: foto 10 MB atau video 150 MB.",
+		"identity-completed":          "Data Identity dan dokumen pelaku berhasil disimpan.",
+		"invalid-identity":            "Data identitas atau penyelesaian belum lengkap atau tidak valid.",
+		"invalid-identity-document":   "Dokumen tidak valid. Gunakan JPG, PNG, WebP, atau PDF.",
+		"identity-document-too-large": "Ukuran dokumen melebihi batas yang diizinkan.",
+		"resolution-saved":            "Penyelesaian kasus dan dokumen pendukung berhasil disimpan.",
+		"invalid-resolution":          "Data penyelesaian kasus belum lengkap atau tidak valid.",
+		"not-found":                   "Kasus atau bukti tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
 	}[code]
 }
 

@@ -91,6 +91,53 @@ type IdentityData struct {
 	Total    int
 }
 
+type IdentityPackageForm struct {
+	CaseID                                       uint64
+	CaseNumber, CaseTitle, CaseStatus, StoreName string
+	ReturnTo                                     string
+	SubjectID                                    uint64
+	SubjectNumber, FullName, NIKMasked, Aliases  string
+	BirthPlace, BirthDate, Gender, Address       string
+	Phone, Occupation, IdentificationNotes       string
+	HasNIK                                       bool
+}
+
+type IdentityPackageInput struct {
+	NIK, FullName, Aliases, BirthPlace, BirthDate string
+	Gender, Address, Phone, Occupation            string
+	IdentificationNotes                           string
+	NIKEncrypted, NIKHash                         []byte
+}
+
+type CaseResolutionInput struct {
+	ResolutionType, ResolutionDate, ResolutionSummary string
+	PoliceReportNumber, PoliceStation                 string
+	CompensationAmount                                *float64
+}
+
+type IdentityVehicle struct {
+	CaseID                                       uint64
+	CaseNumber, Type, Brand, Model, Color, Plate string
+}
+
+type IdentityEvidence struct {
+	ID, CaseID                                  uint64
+	CaseNumber, Filename, MIMEType, Description string
+	SizeLabel, VerificationStatus, CreatedAt    string
+}
+
+type IdentityDetail struct {
+	ID, CaseCount, StoreCount, PackageCaseID uint64
+	SubjectNumber, FullName, Aliases         string
+	IdentityStatus, Gender, BirthInformation string
+	Address, Phone, Occupation               string
+	IdentificationNotes, VerifiedBy          string
+	VerifiedAt, CreatedAt                    string
+	Cases                                    []Case
+	Vehicles                                 []IdentityVehicle
+	Evidence                                 []IdentityEvidence
+}
+
 type VerificationData struct {
 	Cases     []Case
 	Status    string

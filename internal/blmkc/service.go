@@ -14,9 +14,18 @@ var (
 	ErrSubjectRequired   = errors.New("subject identity is required")
 )
 
-type Service struct{ repository *Repository }
+type Service struct {
+	repository *Repository
+	dataKey    string
+}
 
-func NewService(repository *Repository) *Service { return &Service{repository: repository} }
+func NewService(repository *Repository, dataKey ...string) *Service {
+	key := ""
+	if len(dataKey) > 0 {
+		key = dataKey[0]
+	}
+	return &Service{repository: repository, dataKey: key}
+}
 
 func (s *Service) Dashboard(ctx context.Context) (DashboardData, error) {
 	return s.repository.Dashboard(ctx)
@@ -47,6 +56,10 @@ func (s *Service) Wanted(ctx context.Context, search, status string) (WantedData
 
 func (s *Service) Identities(ctx context.Context, search string) (IdentityData, error) {
 	return s.repository.Identities(ctx, search)
+}
+
+func (s *Service) IdentityDetail(ctx context.Context, id uint64) (IdentityDetail, error) {
+	return s.repository.IdentityDetail(ctx, id)
 }
 
 func (s *Service) Verifications(ctx context.Context, search, status string) (VerificationData, error) {

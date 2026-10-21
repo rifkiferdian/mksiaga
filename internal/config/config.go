@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	AppName     string
-	HTTPAddr    string
-	GinMode     string
-	Database    Database
-	Session     Session
-	Maintenance Maintenance
+	AppName      string
+	HTTPAddr     string
+	GinMode      string
+	BLMKCDataKey string
+	Database     Database
+	Session      Session
+	Maintenance  Maintenance
 }
 
 type Maintenance struct {
@@ -57,9 +58,10 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("invalid GIN_MODE: %s", mode)
 	}
 	cfg := Config{
-		AppName:  value("APP_NAME", "MK Siaga"),
-		HTTPAddr: value("HTTP_ADDR", "127.0.0.1:8080"),
-		GinMode:  mode,
+		AppName:      value("APP_NAME", "MK Siaga"),
+		HTTPAddr:     value("HTTP_ADDR", "127.0.0.1:8080"),
+		GinMode:      mode,
+		BLMKCDataKey: value("BLMKC_DATA_KEY", sessionSecret),
 		Database: Database{
 			Enabled:  enabled,
 			Host:     value("DB_HOST", "127.0.0.1"),

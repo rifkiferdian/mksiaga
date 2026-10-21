@@ -71,7 +71,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	r.Use(func(c *gin.Context) {
 		if c.Request.Body != nil && c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
 			limit := int64(2 << 20)
-			if strings.HasPrefix(c.Request.URL.Path, "/blmkc/cases/") && strings.HasSuffix(c.Request.URL.Path, "/evidence") {
+			if strings.HasPrefix(c.Request.URL.Path, "/blmkc/cases/") && (strings.HasSuffix(c.Request.URL.Path, "/evidence") || strings.HasSuffix(c.Request.URL.Path, "/identity-package") || strings.HasSuffix(c.Request.URL.Path, "/resolution")) {
 				limit = 151 << 20
 			}
 			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
@@ -101,7 +101,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		cameraHandler := cameraManagement.NewHandler(cfg.AppName, cameraManagement.NewService(cameraManagement.NewRepository(db)), navigationService)
 		checklistHandler := checklistManagement.NewHandler(cfg.AppName, checklistManagement.NewService(checklistManagement.NewRepository(db)), navigationService)
 		dailyReportHandler := dailyreport.NewHandler(cfg.AppName, dailyreport.NewService(dailyreport.NewRepository(db)), navigationService)
-		blmkcHandler := blmkc.NewHandler(cfg.AppName, blmkc.NewService(blmkc.NewRepository(db)), navigationService)
+		blmkcHandler := blmkc.NewHandler(cfg.AppName, blmkc.NewService(blmkc.NewRepository(db), cfg.BLMKCDataKey), navigationService)
 		incidentTypeHandler := incidentTypeManagement.NewHandler(cfg.AppName, incidentTypeManagement.NewService(incidentTypeManagement.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
 		storeHandler := storeManagement.NewHandler(cfg.AppName, storeManagement.NewService(storeManagement.NewRepository(db)), navigationService)
@@ -129,6 +129,9 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		blmkcRoutes.GET("/cases/:id", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.CaseDetail)
 		blmkcRoutes.GET("/cases/:id/edit", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.EditCase)
 		blmkcRoutes.GET("/cases/:id/evidence/new", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.EvidenceStep)
+		blmkcRoutes.GET("/cases/:id/identity-package", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.IdentityPackageForm)
+		blmkcRoutes.POST("/cases/:id/identity-package", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.SaveIdentityPackage)
+		blmkcRoutes.POST("/cases/:id/resolution", auth.RequirePermission(db, "blmkc.resolve"), blmkcHandler.SaveCaseResolution)
 		blmkcRoutes.POST("/cases/:id/update", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.UpdateCase)
 		blmkcRoutes.POST("/cases/:id/advance-status", auth.RequirePermission(db, "blmkc.change-status"), blmkcHandler.AdvanceStatus)
 		blmkcRoutes.POST("/cases/:id/evidence", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.UploadEvidence)
@@ -137,6 +140,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		blmkcRoutes.POST("/cases/:id/evidence/:evidenceID/verify", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.VerifyEvidence)
 		blmkcRoutes.GET("/wanted", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Wanted)
 		blmkcRoutes.GET("/identity", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Identities)
+		blmkcRoutes.GET("/identity/:id", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.IdentityDetail)
 		blmkcRoutes.GET("/verification", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.Verifications)
 		authorized.GET("/profile", profileHandler.Index)
 		authorized.POST("/profile/name", profileHandler.UpdateName)
