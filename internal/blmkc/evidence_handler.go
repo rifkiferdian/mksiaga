@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -125,6 +126,10 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 	if err != nil {
 		_ = os.Remove(absolutePath)
 		h.redirectEvidenceError(c, caseID, err)
+		return
+	}
+	if c.PostForm("return_to") == "evidence-step" {
+		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(caseID, 10)+"/evidence/new?success=evidence-uploaded")
 		return
 	}
 	h.redirectCase(c, caseID, "success", "evidence-uploaded")
@@ -276,6 +281,10 @@ func (h *Handler) redirectEvidenceError(c *gin.Context, caseID uint64, err error
 		code = "not-found"
 	default:
 		slog.Error("BLMKC evidence operation failed", "error", err)
+	}
+	if c.PostForm("return_to") == "evidence-step" {
+		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(caseID, 10)+"/evidence/new?error="+url.QueryEscape(code))
+		return
 	}
 	h.redirectCase(c, caseID, "error", code)
 }

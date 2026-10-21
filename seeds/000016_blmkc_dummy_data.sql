@@ -96,6 +96,7 @@ DELETE FROM blmkc_case_events WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,
 DELETE FROM blmkc_case_resolutions WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,@case_5);
 DELETE FROM blmkc_vehicles WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,@case_5);
 DELETE FROM blmkc_case_items WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,@case_5);
+DELETE FROM blmkc_evidence_files WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,@case_5);
 DELETE FROM blmkc_case_subjects WHERE case_id IN (@case_1,@case_2,@case_3,@case_4,@case_5);
 
 INSERT INTO blmkc_case_subjects(case_id,subject_id,involvement_role,allegation_status,is_primary,notes) VALUES
@@ -115,6 +116,16 @@ INSERT INTO blmkc_case_items(case_id,item_name,brand,quantity,estimated_value,it
 INSERT INTO blmkc_vehicles(case_id,subject_id,vehicle_type,brand,model,color,license_plate,license_plate_normalized,notes) VALUES
 (@case_1,@subject_1,'Sepeda motor','Merek Dummy','Model A','Hitam','AB 0001 XX','AB0001XX','Nomor polisi fiktif.'),
 (@case_2,@subject_2,'Sepeda motor','Merek Dummy','Model B','Merah','AB 0002 XX','AB0002XX','Nomor polisi fiktif.');
+
+INSERT INTO blmkc_evidence_files(
+    case_id,subject_id,file_category,original_filename,storage_path,mime_type,file_size,file_hash,
+    captured_at,description,verification_status,verified_by_user_id,verified_at,verification_notes,uploaded_by_user_id,created_at
+) VALUES
+(@case_1,@subject_1,'cctv_capture','dummy-cctv-001.png','storage/uploads/blmkc/demo/dummy-cctv-001.png','image/png',2491695,UNHEX('fd546190b658e366369bd55079b3add2ca81db0e0fc1ddb7548ea3c98d3c157f'),'2026-10-10 18:25:00','DATA DUMMY / SIMULASI: Contoh tangkapan CCTV area penjualan.','verified',@creator_id,'2026-10-10 20:00:00','Aset simulasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-10 19:00:00'),
+(@case_2,@subject_2,'cctv_capture','dummy-cctv-002.png','storage/uploads/blmkc/demo/dummy-cctv-002.png','image/png',2355006,UNHEX('b5e87412e2f823d63093d34759bdec34a71cd0524bac9b9431ba624504fb4878'),'2026-10-11 14:10:00','DATA DUMMY / SIMULASI: Contoh tangkapan CCTV area publik.','verified',@creator_id,'2026-10-11 16:00:00','Aset simulasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-11 14:40:00'),
+(@case_3,@subject_3,'cctv_capture','dummy-cctv-003.png','storage/uploads/blmkc/demo/dummy-cctv-003.png','image/png',2653901,UNHEX('29ffc71cf739db8a40d5c574e2c8918e8f5e884abc4d58a3af4438a9a0f86193'),'2026-10-12 20:05:00','DATA DUMMY / SIMULASI: Contoh tangkapan CCTV area parkir.','verified',@creator_id,'2026-10-12 21:00:00','Aset simulasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-12 20:20:00'),
+(@case_4,@subject_4,'cctv_capture','dummy-cctv-004.png','storage/uploads/blmkc/demo/dummy-cctv-004.png','image/png',2515488,UNHEX('1a16d7006898b719d871de9c310cbdee2eb6d7226edf354f5adb365448bcf55e'),'2026-10-13 09:30:00','DATA DUMMY / SIMULASI: Contoh tangkapan CCTV ruang baca.','verified',@creator_id,'2026-10-13 13:00:00','Aset simulasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-13 10:00:00'),
+(@case_5,@subject_5,'cctv_capture','dummy-cctv-005.png','storage/uploads/blmkc/demo/dummy-cctv-005.png','image/png',2271523,UNHEX('21579cc7a6bcf55be77b2bef39ef20bc7d75b6e5882984b6299301467c4ca8f6'),'2026-10-14 16:45:00','DATA DUMMY / SIMULASI: Contoh tangkapan CCTV area layanan.','verified',@creator_id,'2026-10-15 09:00:00','Aset simulasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-14 18:00:00');
 
 INSERT INTO blmkc_case_resolutions(case_id,resolution_type,resolution_date,summary,compensation_amount,created_by_user_id,verified_by_user_id) VALUES
 (@case_3,'statement','2026-10-12 21:15:00','DATA DUMMY: Subjek membuat pernyataan dan barang dikembalikan.',0,@creator_id,@creator_id),

@@ -103,7 +103,7 @@ func (h *Handler) CreateCase(c *gin.Context) {
 		h.redirectServiceError(c, "/blmkc/cases", err)
 		return
 	}
-	c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"?success=created")
+	c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"/evidence/new?success=created")
 }
 
 func (h *Handler) CaseDetail(c *gin.Context) {
@@ -122,6 +122,26 @@ func (h *Handler) CaseDetail(c *gin.Context) {
 		return
 	}
 	h.render(c, "blmkc/detail.html", "Detail Kasus BLMKC", "blmkc-cases", gin.H{
+		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
+}
+
+func (h *Handler) EvidenceStep(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	data, err := h.service.CaseDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/evidence_form.html", "Bukti CCTV Kasus", "blmkc-cases", gin.H{
 		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
 }

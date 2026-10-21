@@ -25,6 +25,10 @@
 # File unggahan runtime.
 /storage/uploads/*
 !/storage/uploads/.gitkeep
+!/storage/uploads/blmkc/
+/storage/uploads/blmkc/*
+!/storage/uploads/blmkc/demo/
+!/storage/uploads/blmkc/demo/*.png
 # Log aplikasi dan tooling.
 *.log
 
