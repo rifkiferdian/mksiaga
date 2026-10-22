@@ -67,7 +67,11 @@ func (h *Handler) renderPage(c *gin.Context, templateName, title string) {
 		h.internalError(c, err)
 		return
 	}
-	if !hasRole(u.RoleName, "superadmin") {
+	if hasRole(u.RoleName, "superadmin") {
+		for i := range data.Reports {
+			data.Reports[i].CanReview = data.Reports[i].Status == "waiting_review"
+		}
+	} else if !hasRole(u.RoleName, "spv_security") {
 		for i := range data.Reports {
 			data.Reports[i].CanReview = false
 		}
@@ -114,7 +118,8 @@ func (h *Handler) Workflow(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	c.HTML(http.StatusOK, "dailyreport/workflow.html", gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": "Proses Laporan CCTV", "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CanReview": hasRole(u.RoleName, "superadmin"), "CurrentUserID": userID, "CSRFToken": token, "Menus": menus, "Report": report, "Data": data, "SuccessMessage": message(c.Query("success")), "ErrorMessage": message(c.Query("error"))})
+	canReview := hasRole(u.RoleName, "superadmin") || hasRole(u.RoleName, "spv_security") && report.SupervisorID == userID
+	c.HTML(http.StatusOK, "dailyreport/workflow.html", gin.H{"AppName": h.appName, "IsDashboard": true, "Authenticated": true, "Title": "Proses Laporan CCTV", "Section": "Laporan", "UserName": u.Name, "UserInitials": initials(u.Name), "StoreName": u.StoreName, "RoleName": u.RoleName, "CanReview": canReview, "CurrentUserID": userID, "CSRFToken": token, "Menus": menus, "Report": report, "Data": data, "SuccessMessage": message(c.Query("success")), "ErrorMessage": message(c.Query("error"))})
 }
 
 func (h *Handler) Print(c *gin.Context) {
@@ -173,7 +178,7 @@ func (h *Handler) workflowAction(c *gin.Context, receive bool) {
 	if receive {
 		err = h.service.Receive(c.Request.Context(), id, storeID, userID, c.PostForm("handover_to_signature"), c.PostForm("notes"), approve)
 	} else {
-		err = h.service.Review(c.Request.Context(), id, userID, c.PostForm("notes"), approve)
+		err = h.service.Review(c.Request.Context(), id, userID, c.PostForm("notes"), approve, hasRole(u.RoleName, "superadmin"))
 	}
 	if err != nil {
 		code := "invalid"

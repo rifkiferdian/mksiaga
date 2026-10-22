@@ -146,14 +146,15 @@ Get-ChildItem seeds/*.sql | Sort-Object Name | ForEach-Object {
 
 Seed development bersifat idempotent. Menjalankan ulang seed superadmin akan mengembalikan password akun admin ke password development. Detail tiap migrasi tersedia di [`migrations/README.md`](migrations/README.md).
 
-Seed `000014_security_dummy_users.sql` menyediakan akun pengujian berikut pada store aktif pertama:
+Seed `000014_security_dummy_users.sql` dan `000015_spv_security.sql` menyediakan akun pengujian berikut pada store aktif pertama:
 
 | Username | Password | Shift default |
 | --- | --- | --- |
 | `security_dummy_1` | `qweqwe` | Pagi |
 | `security_dummy_2` | `qweqwe` | Siang |
+| `spv_security` | `qweqwe` | Supervisor Security |
 
-Akun tersebut hanya untuk development. Petugas shift pagi dapat mengajukan serah terima kepada petugas shift siang; petugas penerima wajib login dan menandatangani sendiri sebelum laporan masuk ke verifikasi supervisor.
+Akun tersebut hanya untuk development. Petugas shift pagi dapat mengajukan serah terima kepada petugas shift siang; petugas penerima wajib login dan menandatangani sendiri sebelum laporan masuk ke verifikasi akun `spv_security` yang dipilih sebagai supervisor.
 
 Untuk membuat perubahan schema baru:
 

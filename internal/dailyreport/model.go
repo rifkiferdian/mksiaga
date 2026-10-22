@@ -36,6 +36,7 @@ type WorkflowReport struct {
 	ReportDate          string
 	ShiftName           string
 	OfficerName         string
+	SupervisorID        uint64
 	SupervisorName      string
 	WorkStart           string
 	WorkEnd             string
@@ -124,6 +125,7 @@ type PageData struct {
 	PriorityAreas  []Option
 	Cameras        []Option
 	Users          []Option
+	Supervisors    []Option
 	Checklists     []ChecklistOption
 	IncidentTypes  []Option
 	Actions        []Option

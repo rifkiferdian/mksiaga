@@ -99,6 +99,9 @@ func (r *Repository) PageData(ctx context.Context, storeID, userID uint64) (Page
 	if data.Users, err = r.options(ctx, `SELECT u.id,u.name,COALESCE(u.employee_number,'') FROM users u JOIN user_stores us ON us.user_id=u.id WHERE us.store_id=? AND u.id<>? AND us.status='active' AND u.status='active' AND u.deleted_at IS NULL ORDER BY u.name`, storeID, userID); err != nil {
 		return data, err
 	}
+	if data.Supervisors, err = r.options(ctx, `SELECT DISTINCT u.id,u.name,COALESCE(u.employee_number,'') FROM users u JOIN user_stores us ON us.user_id=u.id JOIN user_store_roles usr ON usr.user_store_id=us.id JOIN roles r ON r.id=usr.role_id WHERE us.store_id=? AND us.status='active' AND u.status='active' AND u.deleted_at IS NULL AND r.name IN ('spv_security','superadmin') AND r.guard_name='web' ORDER BY u.name`, storeID); err != nil {
+		return data, err
+	}
 	if data.IncidentTypes, err = r.options(ctx, `SELECT id,name,code FROM master_jenis_insiden WHERE status='active' ORDER BY sort_order,name`); err != nil {
 		return data, err
 	}
@@ -122,7 +125,7 @@ func (r *Repository) PageData(ctx context.Context, storeID, userID uint64) (Page
 }
 
 func (r *Repository) reports(ctx context.Context, userID uint64) ([]Report, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT r.id,st.name,DATE_FORMAT(r.report_date,'%d/%m/%Y'),s.name,u.name,r.status,DATE_FORMAT(r.created_at,'%d/%m/%Y %H:%i'),r.handover_to_user_id,(r.status='waiting_handover' AND r.handover_to_user_id=?),(r.status='waiting_review') FROM daily_cctv_reports r JOIN stores st ON st.id=r.store_id AND st.deleted_at IS NULL JOIN master_shift s ON s.id=r.shift_id JOIN users u ON u.id=r.officer_id WHERE `+storescope.Clause(ctx, "r.store_id")+` ORDER BY r.report_date DESC,r.id DESC LIMIT 20`, userID)
+	rows, err := r.db.QueryContext(ctx, `SELECT r.id,st.name,DATE_FORMAT(r.report_date,'%d/%m/%Y'),s.name,u.name,r.status,DATE_FORMAT(r.created_at,'%d/%m/%Y %H:%i'),r.handover_to_user_id,(r.status='waiting_handover' AND r.handover_to_user_id=?),(r.status='waiting_review' AND r.supervisor_id=?) FROM daily_cctv_reports r JOIN stores st ON st.id=r.store_id AND st.deleted_at IS NULL JOIN master_shift s ON s.id=r.shift_id JOIN users u ON u.id=r.officer_id WHERE `+storescope.Clause(ctx, "r.store_id")+` ORDER BY r.report_date DESC,r.id DESC LIMIT 20`, userID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
@@ -140,7 +143,7 @@ func (r *Repository) reports(ctx context.Context, userID uint64) ([]Report, erro
 
 func (r *Repository) WorkflowReport(ctx context.Context, id uint64) (WorkflowReport, error) {
 	var item WorkflowReport
-	err := r.db.QueryRowContext(ctx, `SELECT r.id,st.name,r.officer_id,DATE_FORMAT(r.report_date,'%d/%m/%Y'),s.name,o.name,COALESCE(supervisor.name,''),TIME_FORMAT(r.work_start,'%H:%i'),TIME_FORMAT(r.work_end,'%H:%i'),r.monitoring_location,COALESCE(r.start_notes,''),COALESCE(r.end_notes,''),COALESCE(receiver.name,''),COALESCE(r.handover_to_user_id,0),COALESCE(TIME_FORMAT(r.handover_at,'%H:%i'),''),COALESCE(r.handover_notes,''),r.status,COALESCE(r.review_notes,'') FROM daily_cctv_reports r JOIN stores st ON st.id=r.store_id AND st.deleted_at IS NULL JOIN master_shift s ON s.id=r.shift_id JOIN users o ON o.id=r.officer_id LEFT JOIN users supervisor ON supervisor.id=r.supervisor_id LEFT JOIN users receiver ON receiver.id=r.handover_to_user_id WHERE r.id=? AND `+storescope.Clause(ctx, "r.store_id"), id).Scan(&item.ID, &item.StoreName, &item.OfficerID, &item.ReportDate, &item.ShiftName, &item.OfficerName, &item.SupervisorName, &item.WorkStart, &item.WorkEnd, &item.Location, &item.StartNotes, &item.EndNotes, &item.HandoverToName, &item.HandoverToUserID, &item.HandoverAt, &item.HandoverNotes, &item.Status, &item.ReviewNotes)
+	err := r.db.QueryRowContext(ctx, `SELECT r.id,st.name,r.officer_id,DATE_FORMAT(r.report_date,'%d/%m/%Y'),s.name,o.name,COALESCE(r.supervisor_id,0),COALESCE(supervisor.name,''),TIME_FORMAT(r.work_start,'%H:%i'),TIME_FORMAT(r.work_end,'%H:%i'),r.monitoring_location,COALESCE(r.start_notes,''),COALESCE(r.end_notes,''),COALESCE(receiver.name,''),COALESCE(r.handover_to_user_id,0),COALESCE(TIME_FORMAT(r.handover_at,'%H:%i'),''),COALESCE(r.handover_notes,''),r.status,COALESCE(r.review_notes,'') FROM daily_cctv_reports r JOIN stores st ON st.id=r.store_id AND st.deleted_at IS NULL JOIN master_shift s ON s.id=r.shift_id JOIN users o ON o.id=r.officer_id LEFT JOIN users supervisor ON supervisor.id=r.supervisor_id LEFT JOIN users receiver ON receiver.id=r.handover_to_user_id WHERE r.id=? AND `+storescope.Clause(ctx, "r.store_id"), id).Scan(&item.ID, &item.StoreName, &item.OfficerID, &item.ReportDate, &item.ShiftName, &item.OfficerName, &item.SupervisorID, &item.SupervisorName, &item.WorkStart, &item.WorkEnd, &item.Location, &item.StartNotes, &item.EndNotes, &item.HandoverToName, &item.HandoverToUserID, &item.HandoverAt, &item.HandoverNotes, &item.Status, &item.ReviewNotes)
 	if err != nil {
 		return item, err
 	}
@@ -245,7 +248,7 @@ func (r *Repository) Receive(ctx context.Context, id, storeID, userID uint64, si
 	return err
 }
 
-func (r *Repository) Review(ctx context.Context, id, userID uint64, notes string, approve bool) error {
+func (r *Repository) Review(ctx context.Context, id, userID uint64, notes string, approve, allowAnySupervisor bool) error {
 	toStatus := "revision"
 	if approve {
 		toStatus = "approved"
@@ -259,7 +262,7 @@ func (r *Repository) Review(ctx context.Context, id, userID uint64, notes string
 			_ = tx.Rollback()
 		}
 	}()
-	result, err := tx.ExecContext(ctx, `UPDATE daily_cctv_reports SET status=?,reviewed_by_user_id=?,reviewed_at=IF(?,CURRENT_TIMESTAMP(6),NULL),review_notes=NULLIF(?,'') WHERE id=? AND `+storescope.Clause(ctx, "store_id")+` AND status='waiting_review'`, toStatus, userID, approve, notes, id)
+	result, err := tx.ExecContext(ctx, `UPDATE daily_cctv_reports SET status=?,reviewed_by_user_id=?,reviewed_at=IF(?,CURRENT_TIMESTAMP(6),NULL),review_notes=NULLIF(?,'') WHERE id=? AND `+storescope.Clause(ctx, "store_id")+` AND status='waiting_review' AND (supervisor_id=? OR ?=1)`, toStatus, userID, approve, notes, id, userID, allowAnySupervisor)
 	if err != nil {
 		return err
 	}
@@ -339,6 +342,9 @@ func (r *Repository) Create(ctx context.Context, in Input) (err error) {
 		if id != nil && !exists(tx, ctx, `SELECT EXISTS(SELECT 1 FROM user_stores WHERE store_id=? AND user_id=? AND status='active')`, in.StoreID, *id) {
 			return ErrInvalid
 		}
+	}
+	if in.SupervisorID != nil && !exists(tx, ctx, `SELECT EXISTS(SELECT 1 FROM user_stores us JOIN user_store_roles usr ON usr.user_store_id=us.id JOIN roles r ON r.id=usr.role_id WHERE us.store_id=? AND us.user_id=? AND us.status='active' AND r.name IN ('spv_security','superadmin') AND r.guard_name='web')`, in.StoreID, *in.SupervisorID) {
+		return ErrInvalid
 	}
 	for _, item := range in.Monitoring {
 		if item.AreaID != nil && !exists(tx, ctx, `SELECT EXISTS(SELECT 1 FROM master_area WHERE id=? AND store_id=? AND status='active')`, *item.AreaID, in.StoreID) {

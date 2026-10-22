@@ -93,12 +93,12 @@ func (s *Service) Receive(ctx context.Context, id, storeID, userID uint64, signa
 	}
 	return s.repository.Receive(ctx, id, storeID, userID, signature, notes, accept)
 }
-func (s *Service) Review(ctx context.Context, id, userID uint64, notes string, approve bool) error {
+func (s *Service) Review(ctx context.Context, id, userID uint64, notes string, approve, allowAnySupervisor bool) error {
 	notes = strings.TrimSpace(notes)
 	if !approve && notes == "" {
 		return ErrInvalid
 	}
-	return s.repository.Review(ctx, id, userID, notes, approve)
+	return s.repository.Review(ctx, id, userID, notes, approve, allowAnySupervisor)
 }
 func (s *Service) Revise(ctx context.Context, id, storeID, userID, receiverID uint64, handoverAt, notes, signature string) error {
 	notes = strings.TrimSpace(notes)
