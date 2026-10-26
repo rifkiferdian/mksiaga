@@ -118,7 +118,40 @@ func (r *Repository) Wanted(ctx context.Context, search, status string) (WantedD
 		return data, err
 	}
 	data.Cases = items
+	data.CasePhotos, err = r.wantedCasePhotos(ctx, items)
+	if err != nil {
+		return data, err
+	}
 	return data, nil
+}
+
+func (r *Repository) wantedCasePhotos(ctx context.Context, cases []Case) (map[uint64][]IdentityCasePhoto, error) {
+	photos := make(map[uint64][]IdentityCasePhoto)
+	if len(cases) == 0 {
+		return photos, nil
+	}
+	args := make([]any, len(cases))
+	for index, item := range cases {
+		args[index] = item.ID
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(cases)), ",")
+	rows, err := r.db.QueryContext(ctx, `SELECT id,case_id,COALESCE(description,'')
+		FROM blmkc_evidence_files
+		WHERE deleted_at IS NULL AND mime_type LIKE 'image/%' AND file_category='subject_photo'
+		AND case_id IN (`+placeholders+`)
+		ORDER BY captured_at DESC,created_at DESC,id DESC`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("load BLMKC wanted subject photos: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var photo IdentityCasePhoto
+		if err := rows.Scan(&photo.ID, &photo.CaseID, &photo.Description); err != nil {
+			return nil, err
+		}
+		photos[photo.CaseID] = append(photos[photo.CaseID], photo)
+	}
+	return photos, rows.Err()
 }
 
 func (r *Repository) Identities(ctx context.Context, search string) (IdentityData, error) {

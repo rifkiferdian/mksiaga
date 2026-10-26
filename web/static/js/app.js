@@ -138,6 +138,16 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+document.querySelectorAll("[data-history-back]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    if (!document.referrer || window.history.length <= 1) return;
+    const previousURL = new URL(document.referrer);
+    if (previousURL.origin !== window.location.origin) return;
+    event.preventDefault();
+    window.history.back();
+  });
+});
+
 document.querySelectorAll("[data-open-dialog]").forEach((button) => {
   button.addEventListener("click", () => document.getElementById(button.dataset.openDialog)?.showModal());
 });

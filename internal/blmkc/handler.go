@@ -84,8 +84,15 @@ func (h *Handler) IdentityDetail(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	backURL := "/blmkc/identity"
+	backLabel := "Daftar Identity"
+	if previous, err := url.Parse(c.Request.Referer()); err == nil && previous.Path == "/blmkc/wanted" {
+		backURL = previous.RequestURI()
+		backLabel = "Kembali ke Wanted"
+	}
 	h.render(c, "blmkc/identity_detail.html", "Detail Identity BLMKC", "blmkc-identity", gin.H{
-		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+		"Data": data, "BackURL": backURL, "BackLabel": backLabel,
+		"SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
 }
 

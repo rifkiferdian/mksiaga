@@ -69,6 +69,7 @@ type CaseListData struct {
 
 type WantedData struct {
 	Cases           []Case
+	CasePhotos      map[uint64][]IdentityCasePhoto
 	Search          string
 	Status          string
 	WantedCount     int
