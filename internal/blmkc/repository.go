@@ -185,14 +185,21 @@ func (r *Repository) Verifications(ctx context.Context, search, status string) (
 }
 
 func (r *Repository) queryCases(ctx context.Context, extraWhere string, args []any, limit, offset int) ([]Case, error) {
-	query := `SELECT c.id,c.case_number,s.name,c.title,
+	query := `SELECT c.id,
+		COALESCE((SELECT bcs.subject_id FROM blmkc_case_subjects bcs
+			WHERE bcs.case_id=c.id ORDER BY bcs.is_primary DESC,bcs.id LIMIT 1),0),
+		c.case_number,s.name,c.title,
 		DATE_FORMAT(c.occurred_at,'%d/%m/%Y %H:%i'),c.case_status,c.verification_status,
 		COALESCE(j.name,'Belum ditentukan'),
 		COALESCE((SELECT COALESCE(NULLIF(bs.full_name,''),bs.subject_number)
 			FROM blmkc_case_subjects bcs JOIN blmkc_subjects bs ON bs.id=bcs.subject_id
 			WHERE bcs.case_id=c.id ORDER BY bcs.is_primary DESC,bcs.id LIMIT 1),'Belum ada subjek'),
 		(SELECT COUNT(*) FROM blmkc_case_items ci WHERE ci.case_id=c.id),
-		(SELECT COUNT(*) FROM blmkc_evidence_files ef WHERE ef.case_id=c.id AND ef.deleted_at IS NULL)
+		(SELECT COUNT(*) FROM blmkc_evidence_files ef WHERE ef.case_id=c.id AND ef.deleted_at IS NULL),
+		COALESCE((SELECT ef.id FROM blmkc_evidence_files ef
+			WHERE ef.case_id=c.id AND ef.deleted_at IS NULL
+			AND ef.file_category IN ('stolen_item_photo','incident_photo','subject_photo','vehicle_photo')
+			ORDER BY ef.created_at DESC,ef.id DESC LIMIT 1),0)
 	FROM blmkc_cases c
 	JOIN stores s ON s.id=c.store_id
 	LEFT JOIN master_jenis_insiden j ON j.id=c.incident_type_id
@@ -207,9 +214,9 @@ func (r *Repository) queryCases(ctx context.Context, extraWhere string, args []a
 	var result []Case
 	for rows.Next() {
 		var item Case
-		if err := rows.Scan(&item.ID, &item.CaseNumber, &item.StoreName, &item.Title, &item.OccurredAt,
+		if err := rows.Scan(&item.ID, &item.PrimarySubjectID, &item.CaseNumber, &item.StoreName, &item.Title, &item.OccurredAt,
 			&item.CaseStatus, &item.VerificationStatus, &item.IncidentType, &item.PrimarySubject,
-			&item.ItemCount, &item.EvidenceCount); err != nil {
+			&item.ItemCount, &item.EvidenceCount, &item.PrimaryEvidenceID); err != nil {
 			return nil, fmt.Errorf("scan BLMKC case: %w", err)
 		}
 		result = append(result, item)

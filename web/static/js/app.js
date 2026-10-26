@@ -666,6 +666,57 @@ function filterBLMKCStoreOptions(resetInvalid = false) {
 blmkcStore?.addEventListener("change", () => filterBLMKCStoreOptions(true));
 filterBLMKCStoreOptions();
 
+const existingSubject = document.querySelector('select[name="existing_subject_id"]');
+if (existingSubject) {
+  const subjectName = document.querySelector('input[name="subject_name"]');
+  const initialStatus = document.querySelector('select[name="initial_status"]');
+  const existingSubjectField = existingSubject.closest("[data-existing-subject-field]");
+  const subjectNameField = subjectName?.closest("[data-subject-name-field]");
+  const syncExistingSubject = () => {
+    const identityKnown = initialStatus?.value === "identified";
+    existingSubjectField?.classList.toggle("hidden", !identityKnown);
+    existingSubject.disabled = !identityKnown;
+    if (!identityKnown) existingSubject.value = "";
+    const usingExisting = existingSubject.value !== "";
+    if (subjectName) {
+      subjectName.disabled = usingExisting;
+      subjectName.required = identityKnown && !usingExisting;
+      subjectNameField?.classList.toggle("opacity-50", usingExisting);
+    }
+  };
+  existingSubject.addEventListener("change", syncExistingSubject);
+  initialStatus?.addEventListener("change", syncExistingSubject);
+  syncExistingSubject();
+}
+
+const evidenceCategory = document.querySelector('form[action$="/evidence"] select[name="category"]');
+if (evidenceCategory) {
+  const vehicleFields = document.createElement("div");
+  vehicleFields.className = "hidden rounded-2xl border border-blue-200 bg-blue-50 p-4 md:col-span-2";
+  vehicleFields.dataset.vehicleEvidenceFields = "";
+  vehicleFields.innerHTML = `
+    <div class="mb-4"><strong class="text-sm text-blue-900">Data kendaraan</strong><p class="mt-1 text-xs text-blue-700">Data ini akan tampil pada bagian Kendaraan di detail kasus.</p></div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Jenis kendaraan <b class="text-red-500">*</b></span><input name="vehicle_type" maxlength="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm" placeholder="Contoh: Sepeda motor"></label>
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Nomor polisi <b class="text-red-500">*</b></span><input name="vehicle_plate" maxlength="30" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm uppercase" placeholder="Contoh: AB 1234 CD"></label>
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Merek</span><input name="vehicle_brand" maxlength="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm" placeholder="Merek kendaraan"></label>
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Model</span><input name="vehicle_model" maxlength="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm" placeholder="Model kendaraan"></label>
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Warna</span><input name="vehicle_color" maxlength="80" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm" placeholder="Warna kendaraan"></label>
+      <label><span class="mb-2 block text-xs font-semibold text-slate-700">Catatan kendaraan</span><input name="vehicle_notes" maxlength="2000" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm" placeholder="Ciri khusus atau informasi tambahan"></label>
+    </div>`;
+  evidenceCategory.closest(".grid")?.append(vehicleFields);
+  const syncVehicleFields = () => {
+    const visible = evidenceCategory.value === "vehicle_photo";
+    vehicleFields.classList.toggle("hidden", !visible);
+    vehicleFields.querySelectorAll("input").forEach((input) => {
+      input.disabled = !visible;
+      input.required = visible && (input.name === "vehicle_type" || input.name === "vehicle_plate");
+    });
+  };
+  evidenceCategory.addEventListener("change", syncVehicleFields);
+  syncVehicleFields();
+}
+
 const statusDialog = document.querySelector("[data-status-dialog]");
 document.querySelector("[data-status-dialog-open]")?.addEventListener("click", () => {
   statusDialog?.classList.remove("hidden");

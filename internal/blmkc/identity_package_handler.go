@@ -25,12 +25,11 @@ type identityDocument struct {
 }
 
 var identityDocuments = []identityDocument{
-	{"subject_photo", "subject_photo", "Foto pelaku", true},
+	{"subject_photo", "subject_photo", "Foto pelaku setelah tertangkap", true},
 	{"identity_card", "identity_card", "Foto atau salinan KTP", false},
 }
 
 var resolutionDocuments = []identityDocument{
-	{"incident_photo", "incident_photo", "Foto bukti tindak kejahatan", true},
 	{"statement_letter", "statement_letter", "Surat pernyataan", false},
 	{"settlement_letter", "settlement_letter", "Surat perdamaian", false},
 	{"case_resolution", "case_resolution", "Berkas penyelesaian kasus", false},
@@ -43,6 +42,10 @@ func (h *Handler) IdentityPackageForm(c *gin.Context) {
 		return
 	}
 	data, err := h.service.IdentityPackageForm(c.Request.Context(), id)
+	if errors.Is(err, ErrIdentityPackageUnavailable) {
+		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"?error=identity-unavailable")
+		return
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		c.Redirect(http.StatusSeeOther, "/errors/404")
 		return

@@ -70,12 +70,27 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 		h.redirectEvidenceError(c, caseID, errInvalidEvidence)
 		return
 	}
+	if strings.HasPrefix(mimeType, "image/") {
+		requestedCategory := strings.TrimSpace(c.PostForm("category"))
+		allowedPhotoCategories := map[string]bool{
+			"incident_photo": true, "subject_photo": true, "stolen_item_photo": true, "vehicle_photo": true,
+		}
+		if !allowedPhotoCategories[requestedCategory] {
+			h.redirectEvidenceError(c, caseID, errInvalidEvidence)
+			return
+		}
+		category = requestedCategory
+	}
 	if header.Size > maxSize {
 		h.redirectEvidenceError(c, caseID, errEvidenceTooLarge)
 		return
 	}
 	capturedAt, err := optionalDateTime(c.PostForm("captured_at"))
-	if err != nil || utf8.RuneCountInString(strings.TrimSpace(c.PostForm("description"))) > 500 {
+	description := strings.TrimSpace(c.PostForm("evidence_description"))
+	if description == "" {
+		description = strings.TrimSpace(c.PostForm("description"))
+	}
+	if err != nil || utf8.RuneCountInString(description) > 500 {
 		h.redirectEvidenceError(c, caseID, errInvalidEvidence)
 		return
 	}
@@ -118,11 +133,18 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 		h.internalError(c, parseErr)
 		return
 	}
-	err = h.service.CreateEvidence(c.Request.Context(), EvidenceInput{
+	var vehicle *VehicleInput
+	if category == "vehicle_photo" {
+		vehicle = &VehicleInput{
+			Type: c.PostForm("vehicle_type"), Brand: c.PostForm("vehicle_brand"), Model: c.PostForm("vehicle_model"),
+			Color: c.PostForm("vehicle_color"), Plate: c.PostForm("vehicle_plate"), Notes: c.PostForm("vehicle_notes"),
+		}
+	}
+	err = h.service.CreateEvidenceWithVehicle(c.Request.Context(), EvidenceInput{
 		CaseID: caseID, SubjectID: subjectID, UserID: userID, FileSize: uint64(written), Category: category,
 		Filename: originalName, StoragePath: filepath.ToSlash(relativePath), MIMEType: mimeType,
-		Description: c.PostForm("description"), FileHash: hash.Sum(nil), CapturedAt: capturedAt,
-	})
+		Description: description, FileHash: hash.Sum(nil), CapturedAt: capturedAt,
+	}, vehicle)
 	if err != nil {
 		_ = os.Remove(absolutePath)
 		h.redirectEvidenceError(c, caseID, err)
@@ -224,8 +246,6 @@ func evidenceType(filename string, header []byte) (mimeType, category, extension
 		".jpeg": {"image/jpeg", "cctv_capture", maxPhotoSize},
 		".png":  {"image/png", "cctv_capture", maxPhotoSize},
 		".webp": {"image/webp", "cctv_capture", maxPhotoSize},
-		".mp4":  {"video/mp4", "cctv_video", maxVideoSize},
-		".webm": {"video/webm", "cctv_video", maxVideoSize},
 	}
 	definition, exists := allowed[extension]
 	if !exists {

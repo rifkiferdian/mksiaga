@@ -19,11 +19,14 @@ func (r *Repository) IdentityPackageForm(ctx context.Context, caseID uint64) (Id
 	FROM blmkc_cases c JOIN stores st ON st.id=c.store_id
 	JOIN blmkc_case_subjects cs ON cs.case_id=c.id AND cs.is_primary=1
 	JOIN blmkc_subjects sub ON sub.id=cs.subject_id
-	WHERE c.id=? AND c.archived_at IS NULL AND c.case_status IN ('apprehended','resolved','reported_to_police')
+	WHERE c.id=? AND c.archived_at IS NULL
 		AND `+storescope.Clause(ctx, "c.store_id"), caseID).Scan(
 		&item.CaseID, &item.CaseNumber, &item.CaseTitle, &item.CaseStatus, &item.StoreName, &item.SubjectID,
 		&item.SubjectNumber, &item.FullName, &hasNIK, &item.Aliases, &item.BirthPlace, &item.BirthDate,
 		&item.Gender, &item.Address, &item.Phone, &item.Occupation, &item.IdentificationNotes)
+	if err == nil && item.CaseStatus != "apprehended" && item.CaseStatus != "resolved" && item.CaseStatus != "reported_to_police" {
+		return item, ErrIdentityPackageUnavailable
+	}
 	item.HasNIK = hasNIK
 	if hasNIK {
 		item.NIKMasked = "••••••••••••••••"

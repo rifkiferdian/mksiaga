@@ -20,6 +20,8 @@ type StatusCount struct {
 
 type Case struct {
 	ID                 uint64
+	PrimarySubjectID   uint64
+	PrimaryEvidenceID  uint64
 	CaseNumber         string
 	StoreName          string
 	Title              string
@@ -129,6 +131,7 @@ type IdentityEvidence struct {
 type IdentityDetail struct {
 	ID, CaseCount, StoreCount, PackageCaseID uint64
 	SubjectNumber, FullName, Aliases         string
+	PackageCaseStatus                        string
 	IdentityStatus, Gender, BirthInformation string
 	Address, Phone, Occupation               string
 	IdentificationNotes, VerifiedBy          string
@@ -136,6 +139,12 @@ type IdentityDetail struct {
 	Cases                                    []Case
 	Vehicles                                 []IdentityVehicle
 	Evidence                                 []IdentityEvidence
+	CasePhotos                               map[uint64][]IdentityCasePhoto
+}
+
+type IdentityCasePhoto struct {
+	ID, CaseID  uint64
+	Description string
 }
 
 type VerificationData struct {
@@ -156,16 +165,17 @@ type FormOption struct {
 }
 
 type CaseInput struct {
-	StoreID        uint64
-	IncidentTypeID *uint64
-	AreaID         *uint64
-	CameraID       *uint64
-	OccurredAt     string
-	Title          string
-	Chronology     string
-	LossAmount     *float64
-	SubjectName    string
-	InitialStatus  string
+	StoreID           uint64
+	ExistingSubjectID uint64
+	IncidentTypeID    *uint64
+	AreaID            *uint64
+	CameraID          *uint64
+	OccurredAt        string
+	Title             string
+	Chronology        string
+	LossAmount        *float64
+	SubjectName       string
+	InitialStatus     string
 }
 
 type CaseFormData struct {
@@ -179,6 +189,7 @@ type CaseFormData struct {
 	IncidentTypes          []FormOption
 	Areas                  []FormOption
 	Cameras                []FormOption
+	Subjects               []FormOption
 	IsEdit                 bool
 }
 
@@ -207,6 +218,10 @@ type EvidenceInput struct {
 	Category, Filename, StoragePath, MIMEType, Description string
 	FileHash                                               []byte
 	CapturedAt                                             *time.Time
+}
+
+type VehicleInput struct {
+	Type, Brand, Model, Color, Plate, Notes string
 }
 
 type ResolutionDetail struct {

@@ -141,6 +141,7 @@ func (h *Handler) CaseDetail(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
+	data.Evidence = casePhotoEvidence(data.Evidence)
 	h.render(c, "blmkc/detail.html", "Detail Kasus BLMKC", "blmkc-cases", gin.H{
 		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
@@ -161,9 +162,74 @@ func (h *Handler) EvidenceStep(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	h.render(c, "blmkc/evidence_form.html", "Bukti CCTV Kasus", "blmkc-cases", gin.H{
-		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	data.Evidence = casePhotoEvidence(data.Evidence)
+	missingPhotos := missingCasePhotos(data.Evidence)
+	h.render(c, "blmkc/evidence_form.html", "Tambah Bukti Kasus", "blmkc-cases", gin.H{
+		"Data": data, "MissingPhotos": missingPhotos, "EvidenceComplete": len(missingPhotos) == 0,
+		"SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
+}
+
+func (h *Handler) CompleteEvidenceStep(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"/evidence/new?error=csrf")
+		return
+	}
+	data, err := h.service.CaseDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	if len(missingCasePhotos(casePhotoEvidence(data.Evidence))) > 0 {
+		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"/evidence/new?error=evidence-incomplete")
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(id, 10)+"?success=created")
+}
+
+func casePhotoEvidence(evidence []EvidenceDetail) []EvidenceDetail {
+	allowed := map[string]bool{
+		"stolen_item_photo": true,
+		"incident_photo":    true,
+		"subject_photo":     true,
+		"vehicle_photo":     true,
+	}
+	filtered := make([]EvidenceDetail, 0, len(evidence))
+	for _, item := range evidence {
+		if allowed[item.Category] {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func missingCasePhotos(evidence []EvidenceDetail) []string {
+	required := []struct{ category, label string }{
+		{"stolen_item_photo", "Foto barang dicuri"},
+		{"incident_photo", "Foto bukti tindak kejahatan"},
+		{"subject_photo", "Foto pelaku saat kejadian"},
+		{"vehicle_photo", "Foto kendaraan"},
+	}
+	found := make(map[string]bool, len(evidence))
+	for _, item := range evidence {
+		found[item.Category] = true
+	}
+	missing := make([]string, 0, len(required))
+	for _, item := range required {
+		if !found[item.category] {
+			missing = append(missing, item.label)
+		}
+	}
+	return missing
 }
 
 func (h *Handler) EditCase(c *gin.Context) {
@@ -233,8 +299,9 @@ func (h *Handler) AdvanceStatus(c *gin.Context) {
 
 func caseFormInput(c *gin.Context) CaseInput {
 	storeID, _ := strconv.ParseUint(c.PostForm("store_id"), 10, 64)
+	existingSubjectID, _ := strconv.ParseUint(c.PostForm("existing_subject_id"), 10, 64)
 	return CaseInput{
-		StoreID: storeID, IncidentTypeID: optionalUint(c.PostForm("incident_type_id")),
+		StoreID: storeID, ExistingSubjectID: existingSubjectID, IncidentTypeID: optionalUint(c.PostForm("incident_type_id")),
 		AreaID: optionalUint(c.PostForm("area_id")), CameraID: optionalUint(c.PostForm("camera_id")),
 		OccurredAt: c.PostForm("occurred_at"), Title: c.PostForm("title"), Chronology: c.PostForm("chronology"),
 		LossAmount: optionalFloat(c.PostForm("loss_amount")), SubjectName: c.PostForm("subject_name"), InitialStatus: c.PostForm("initial_status"),
@@ -297,10 +364,12 @@ func caseMessage(code string) string {
 		"created": "Kasus berhasil dibuat.", "updated": "Kasus berhasil diperbarui.", "status-updated": "Status kasus berhasil diperbarui.",
 		"csrf": "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
 		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
-		"evidence-uploaded": "Bukti CCTV berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
+		"evidence-uploaded": "Bukti kejahatan berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
+		"evidence-incomplete":         "Foto bukti kasus belum lengkap. Lengkapi semua kategori wajib sebelum melanjutkan.",
 		"invalid-evidence":            "File bukti tidak valid. Gunakan JPG, PNG, WebP, MP4, atau WebM.",
 		"evidence-too-large":          "Ukuran bukti melebihi batas: foto 10 MB atau video 150 MB.",
 		"identity-completed":          "Data Identity dan dokumen pelaku berhasil disimpan.",
+		"identity-unavailable":        "Kelengkapan Identity baru dapat diisi setelah pelaku diamankan.",
 		"invalid-identity":            "Data identitas atau penyelesaian belum lengkap atau tidak valid.",
 		"invalid-identity-document":   "Dokumen tidak valid. Gunakan JPG, PNG, WebP, atau PDF.",
 		"identity-document-too-large": "Ukuran dokumen melebihi batas yang diizinkan.",

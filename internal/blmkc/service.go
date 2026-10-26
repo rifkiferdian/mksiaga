@@ -108,13 +108,31 @@ func (s *Service) EvidenceUploadContext(ctx context.Context, caseID uint64) (uin
 }
 
 func (s *Service) CreateEvidence(ctx context.Context, input EvidenceInput) error {
+	return s.CreateEvidenceWithVehicle(ctx, input, nil)
+}
+
+func (s *Service) CreateEvidenceWithVehicle(ctx context.Context, input EvidenceInput, vehicle *VehicleInput) error {
 	input.Description = strings.TrimSpace(input.Description)
 	if input.CaseID == 0 || input.SubjectID == 0 || input.UserID == 0 || input.FileSize == 0 ||
 		input.Category == "" || input.Filename == "" || input.StoragePath == "" || input.MIMEType == "" ||
 		len(input.FileHash) != 32 || utf8.RuneCountInString(input.Description) > 500 {
 		return ErrInvalid
 	}
-	return s.repository.CreateEvidence(ctx, input)
+	if vehicle != nil {
+		vehicle.Type = strings.TrimSpace(vehicle.Type)
+		vehicle.Brand = strings.TrimSpace(vehicle.Brand)
+		vehicle.Model = strings.TrimSpace(vehicle.Model)
+		vehicle.Color = strings.TrimSpace(vehicle.Color)
+		vehicle.Plate = strings.TrimSpace(vehicle.Plate)
+		vehicle.Notes = strings.TrimSpace(vehicle.Notes)
+		if input.Category != "vehicle_photo" || vehicle.Type == "" || vehicle.Plate == "" ||
+			utf8.RuneCountInString(vehicle.Type) > 100 || utf8.RuneCountInString(vehicle.Brand) > 100 ||
+			utf8.RuneCountInString(vehicle.Model) > 100 || utf8.RuneCountInString(vehicle.Color) > 80 ||
+			utf8.RuneCountInString(vehicle.Plate) > 30 || utf8.RuneCountInString(vehicle.Notes) > 2000 {
+			return ErrInvalid
+		}
+	}
+	return s.repository.CreateEvidenceWithVehicle(ctx, input, vehicle)
 }
 
 func (s *Service) Evidence(ctx context.Context, caseID, evidenceID uint64) (EvidenceFile, error) {
@@ -137,6 +155,10 @@ func (s *Service) normalizeCase(ctx context.Context, input CaseInput, creating b
 	input.Title = strings.TrimSpace(input.Title)
 	input.Chronology = strings.TrimSpace(input.Chronology)
 	input.SubjectName = strings.TrimSpace(input.SubjectName)
+	if input.ExistingSubjectID > 0 {
+		input.InitialStatus = "identified"
+		input.SubjectName = ""
+	}
 	parsed, err := time.Parse("2006-01-02T15:04", input.OccurredAt)
 	if err != nil {
 		return CaseInput{}, ErrInvalid
@@ -153,7 +175,7 @@ func (s *Service) normalizeCase(ctx context.Context, input CaseInput, creating b
 		if input.InitialStatus != "wanted" && input.InitialStatus != "identified" {
 			return CaseInput{}, ErrInvalid
 		}
-		if input.InitialStatus == "identified" && input.SubjectName == "" {
+		if input.InitialStatus == "identified" && input.SubjectName == "" && input.ExistingSubjectID == 0 {
 			return CaseInput{}, ErrSubjectRequired
 		}
 	}

@@ -18,19 +18,20 @@ func (r *Repository) IdentityDetail(ctx context.Context, id uint64) (IdentityDet
 		COALESCE(NULLIF(sub.identification_notes,''),'-'),COALESCE(verifier.name,'-'),
 		COALESCE(DATE_FORMAT(sub.verified_at,'%d/%m/%Y %H:%i'),'-'),DATE_FORMAT(sub.created_at,'%d/%m/%Y %H:%i'),
 		COUNT(DISTINCT c.id),COUNT(DISTINCT c.store_id),
-		SUBSTRING_INDEX(GROUP_CONCAT(c.id ORDER BY c.occurred_at DESC,c.id DESC),',',1)
+		SUBSTRING_INDEX(GROUP_CONCAT(c.id ORDER BY c.occurred_at DESC,c.id DESC),',',1),
+		SUBSTRING_INDEX(GROUP_CONCAT(c.case_status ORDER BY c.occurred_at DESC,c.id DESC),',',1)
 	FROM blmkc_subjects sub
 	JOIN blmkc_case_subjects cs ON cs.subject_id=sub.id
 	JOIN blmkc_cases c ON c.id=cs.case_id
 	LEFT JOIN users verifier ON verifier.id=sub.verified_by_user_id
 	WHERE sub.id=? AND sub.archived_at IS NULL AND c.archived_at IS NULL
-		AND c.case_status IN ('apprehended','resolved','reported_to_police')
 		AND `+storescope.Clause(ctx, "c.store_id")+`
 	GROUP BY sub.id,sub.subject_number,sub.full_name,sub.identity_status,sub.gender,sub.birth_place,sub.birth_date,
 		sub.address,sub.phone,sub.occupation,sub.identification_notes,verifier.name,sub.verified_at,sub.created_at`, id).Scan(
 		&item.ID, &item.SubjectNumber, &item.FullName, &item.Aliases, &item.IdentityStatus, &item.Gender,
 		&item.BirthInformation, &item.Address, &item.Phone, &item.Occupation, &item.IdentificationNotes,
-		&item.VerifiedBy, &item.VerifiedAt, &item.CreatedAt, &item.CaseCount, &item.StoreCount, &item.PackageCaseID)
+		&item.VerifiedBy, &item.VerifiedAt, &item.CreatedAt, &item.CaseCount, &item.StoreCount, &item.PackageCaseID,
+		&item.PackageCaseStatus)
 	if err != nil {
 		return item, err
 	}
@@ -39,13 +40,38 @@ func (r *Repository) IdentityDetail(ctx context.Context, id uint64) (IdentityDet
 	if err != nil {
 		return item, err
 	}
-	if err := r.identityVehicles(ctx, id, &item); err != nil {
-		return item, err
-	}
 	if err := r.identityEvidence(ctx, id, &item); err != nil {
 		return item, err
 	}
+	if err := r.identityCasePhotos(ctx, id, &item); err != nil {
+		return item, err
+	}
 	return item, nil
+}
+
+func (r *Repository) identityCasePhotos(ctx context.Context, id uint64, item *IdentityDetail) error {
+	rows, err := r.db.QueryContext(ctx, `SELECT e.id,e.case_id,COALESCE(e.description,'')
+		FROM blmkc_evidence_files e
+		JOIN blmkc_cases c ON c.id=e.case_id
+		JOIN blmkc_case_subjects cs ON cs.case_id=c.id AND cs.subject_id=?
+		WHERE e.deleted_at IS NULL AND c.archived_at IS NULL
+		AND e.mime_type LIKE 'image/%'
+		AND e.file_category IN ('stolen_item_photo','incident_photo','subject_photo','vehicle_photo')
+		AND `+storescope.Clause(ctx, "c.store_id")+`
+		ORDER BY e.created_at DESC,e.id DESC`, id)
+	if err != nil {
+		return fmt.Errorf("load BLMKC identity case photos: %w", err)
+	}
+	defer rows.Close()
+	item.CasePhotos = make(map[uint64][]IdentityCasePhoto)
+	for rows.Next() {
+		var photo IdentityCasePhoto
+		if err := rows.Scan(&photo.ID, &photo.CaseID, &photo.Description); err != nil {
+			return err
+		}
+		item.CasePhotos[photo.CaseID] = append(item.CasePhotos[photo.CaseID], photo)
+	}
+	return rows.Err()
 }
 
 func (r *Repository) identityVehicles(ctx context.Context, id uint64, item *IdentityDetail) error {

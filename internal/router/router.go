@@ -129,6 +129,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		blmkcRoutes.GET("/cases/:id", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.CaseDetail)
 		blmkcRoutes.GET("/cases/:id/edit", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.EditCase)
 		blmkcRoutes.GET("/cases/:id/evidence/new", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.EvidenceStep)
+		blmkcRoutes.POST("/cases/:id/evidence/complete", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.CompleteEvidenceStep)
 		blmkcRoutes.GET("/cases/:id/identity-package", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.IdentityPackageForm)
 		blmkcRoutes.POST("/cases/:id/identity-package", auth.RequirePermission(db, "blmkc.update"), blmkcHandler.SaveIdentityPackage)
 		blmkcRoutes.POST("/cases/:id/resolution", auth.RequirePermission(db, "blmkc.resolve"), blmkcHandler.SaveCaseResolution)

@@ -32,6 +32,16 @@ func (r *Repository) CaseForm(ctx context.Context, id uint64) (CaseFormData, err
 	if err != nil {
 		return data, err
 	}
+	data.Subjects, err = r.formOptions(ctx, `SELECT DISTINCT sub.id,0,sub.subject_number,
+		COALESCE(NULLIF(sub.full_name,''),'Nama belum diketahui')
+		FROM blmkc_subjects sub
+		JOIN blmkc_case_subjects cs ON cs.subject_id=sub.id
+		JOIN blmkc_cases c ON c.id=cs.case_id
+		WHERE sub.archived_at IS NULL AND c.archived_at IS NULL AND `+storescope.Clause(ctx, "c.store_id")+`
+		ORDER BY COALESCE(NULLIF(sub.full_name,''),sub.subject_number)`)
+	if err != nil {
+		return data, err
+	}
 	if id == 0 {
 		if len(data.Stores) == 1 {
 			data.Case.StoreID = data.Stores[0].ID
@@ -95,16 +105,21 @@ func (r *Repository) ValidCaseReferences(ctx context.Context, input CaseInput) (
 	if !storescope.Allows(ctx, input.StoreID) {
 		return false, nil
 	}
-	var storeOK, typeOK, areaOK, cameraOK bool
+	var storeOK, typeOK, areaOK, cameraOK, subjectOK bool
 	err := r.db.QueryRowContext(ctx, `SELECT
 		EXISTS(SELECT 1 FROM stores WHERE id=? AND status='active' AND deleted_at IS NULL),
 		(? IS NOT NULL AND EXISTS(SELECT 1 FROM master_jenis_insiden WHERE id=? AND status='active' AND code='THEFT')),
 		(? IS NULL OR EXISTS(SELECT 1 FROM master_area WHERE id=? AND store_id=? AND status='active')),
-		(? IS NULL OR EXISTS(SELECT 1 FROM master_kamera WHERE id=? AND store_id=? AND status='active'))`,
+		(? IS NULL OR EXISTS(SELECT 1 FROM master_kamera WHERE id=? AND store_id=? AND status='active')),
+		(?=0 OR EXISTS(SELECT 1 FROM blmkc_subjects sub
+			JOIN blmkc_case_subjects cs ON cs.subject_id=sub.id
+			JOIN blmkc_cases c ON c.id=cs.case_id
+			WHERE sub.id=? AND sub.archived_at IS NULL AND c.archived_at IS NULL AND `+storescope.Clause(ctx, "c.store_id")+`))`,
 		input.StoreID, input.IncidentTypeID, input.IncidentTypeID,
 		input.AreaID, input.AreaID, input.StoreID,
-		input.CameraID, input.CameraID, input.StoreID).Scan(&storeOK, &typeOK, &areaOK, &cameraOK)
-	return storeOK && typeOK && areaOK && cameraOK, err
+		input.CameraID, input.CameraID, input.StoreID,
+		input.ExistingSubjectID, input.ExistingSubjectID).Scan(&storeOK, &typeOK, &areaOK, &cameraOK, &subjectOK)
+	return storeOK && typeOK && areaOK && cameraOK && subjectOK, err
 }
 
 func (r *Repository) CreateCase(ctx context.Context, input CaseInput, userID uint64) (uint64, error) {
@@ -139,22 +154,27 @@ func (r *Repository) CreateCase(ctx context.Context, input CaseInput, userID uin
 	if _, err := tx.ExecContext(ctx, `UPDATE blmkc_cases SET case_number=? WHERE id=?`, caseNumber, id); err != nil {
 		return 0, err
 	}
-	identityStatus := "unknown"
-	if input.SubjectName != "" {
-		identityStatus = "identified"
-	}
-	subjectResult, err := tx.ExecContext(ctx, `INSERT INTO blmkc_subjects(subject_number,full_name,identity_status,identification_notes,created_by_user_id)
-		VALUES(?,?,?,?,?)`, "PENDING-"+token, nullString(input.SubjectName), identityStatus, "Dibuat bersama kasus "+caseNumber, userID)
-	if err != nil {
-		return 0, err
-	}
-	subjectID, err := subjectResult.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	subjectNumber := fmt.Sprintf("BLMKC-SUB-%06d", subjectID)
-	if _, err := tx.ExecContext(ctx, `UPDATE blmkc_subjects SET subject_number=? WHERE id=?`, subjectNumber, subjectID); err != nil {
-		return 0, err
+	var subjectID int64
+	if input.ExistingSubjectID > 0 {
+		subjectID = int64(input.ExistingSubjectID)
+	} else {
+		identityStatus := "unknown"
+		if input.SubjectName != "" {
+			identityStatus = "identified"
+		}
+		subjectResult, err := tx.ExecContext(ctx, `INSERT INTO blmkc_subjects(subject_number,full_name,identity_status,identification_notes,created_by_user_id)
+			VALUES(?,?,?,?,?)`, "PENDING-"+token, nullString(input.SubjectName), identityStatus, "Dibuat bersama kasus "+caseNumber, userID)
+		if err != nil {
+			return 0, err
+		}
+		subjectID, err = subjectResult.LastInsertId()
+		if err != nil {
+			return 0, err
+		}
+		subjectNumber := fmt.Sprintf("BLMKC-SUB-%06d", subjectID)
+		if _, err := tx.ExecContext(ctx, `UPDATE blmkc_subjects SET subject_number=? WHERE id=?`, subjectNumber, subjectID); err != nil {
+			return 0, err
+		}
 	}
 	allegation := "unverified"
 	if input.InitialStatus == "identified" {
