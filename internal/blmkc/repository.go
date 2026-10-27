@@ -191,6 +191,12 @@ func (r *Repository) PublicWantedDetail(ctx context.Context, caseID uint64) (Pub
 		return data, sql.ErrNoRows
 	}
 	data.Case = items[0]
+	if err := r.db.QueryRowContext(ctx, `SELECT COALESCE(NULLIF(u.name,''),'Petugas verifikasi')
+		FROM blmkc_cases c LEFT JOIN users u ON u.id=c.reviewed_by_user_id
+		WHERE c.id=? AND c.archived_at IS NULL AND c.verification_status='verified'
+		AND c.case_status IN ('wanted','identified')`, caseID).Scan(&data.ReviewerName); err != nil {
+		return data, err
+	}
 	photos, err := r.wantedCasePhotos(ctx, items)
 	if err != nil {
 		return data, err

@@ -79,8 +79,9 @@ type WantedData struct {
 }
 
 type PublicWantedDetailData struct {
-	Case   Case
-	Photos []IdentityCasePhoto
+	Case         Case
+	Photos       []IdentityCasePhoto
+	ReviewerName string
 }
 
 type Identity struct {
