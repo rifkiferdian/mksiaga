@@ -2,7 +2,6 @@ package blmkc
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
@@ -58,38 +57,6 @@ func (r *Repository) Evidence(ctx context.Context, caseID, evidenceID uint64) (E
 		WHERE e.id=? AND e.case_id=? AND e.deleted_at IS NULL AND c.archived_at IS NULL AND `+storescope.Clause(ctx, "c.store_id"), evidenceID, caseID).Scan(
 		&item.ID, &item.CaseID, &item.StoreID, &item.FileSize, &item.Category, &item.Filename, &item.StoragePath, &item.MIMEType)
 	return item, err
-}
-
-func (r *Repository) VerifyEvidence(ctx context.Context, caseID, evidenceID, userID uint64, approve bool, notes string) error {
-	status := "rejected"
-	if approve {
-		status = "verified"
-	}
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `UPDATE blmkc_evidence_files e
-		JOIN blmkc_cases c ON c.id=e.case_id
-		SET e.verification_status=?,e.verified_by_user_id=?,e.verified_at=NOW(6),e.verification_notes=?
-		WHERE e.id=? AND e.case_id=? AND e.deleted_at IS NULL AND c.archived_at IS NULL AND `+storescope.Clause(ctx, "c.store_id"),
-		status, userID, nullString(notes), evidenceID, caseID)
-	if err != nil {
-		return err
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return sql.ErrNoRows
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO blmkc_case_events(case_id,actor_user_id,event_type,from_status,to_status,notes)
-		SELECT id,?,'evidence_reviewed',case_status,case_status,? FROM blmkc_cases WHERE id=?`, userID, "Status bukti: "+status, caseID); err != nil {
-		return err
-	}
-	return tx.Commit()
 }
 
 func (r *Repository) LogEvidenceAccess(ctx context.Context, userID, storeID, caseID uint64, action, ipAddress, userAgent string) error {

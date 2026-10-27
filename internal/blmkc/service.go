@@ -12,7 +12,6 @@ var (
 	ErrInvalid           = errors.New("invalid BLMKC case")
 	ErrInvalidTransition = errors.New("invalid BLMKC status transition")
 	ErrSubjectRequired   = errors.New("subject identity is required")
-	ErrEvidencePending   = errors.New("case evidence is still pending verification")
 )
 
 type Service struct {
@@ -148,14 +147,6 @@ func (s *Service) CreateEvidenceWithVehicle(ctx context.Context, input EvidenceI
 
 func (s *Service) Evidence(ctx context.Context, caseID, evidenceID uint64) (EvidenceFile, error) {
 	return s.repository.Evidence(ctx, caseID, evidenceID)
-}
-
-func (s *Service) VerifyEvidence(ctx context.Context, caseID, evidenceID, userID uint64, approve bool, notes string) error {
-	notes = strings.TrimSpace(notes)
-	if caseID == 0 || evidenceID == 0 || userID == 0 || utf8.RuneCountInString(notes) > 500 || (!approve && notes == "") {
-		return ErrInvalid
-	}
-	return s.repository.VerifyEvidence(ctx, caseID, evidenceID, userID, approve, notes)
 }
 
 func (s *Service) LogEvidenceAccess(ctx context.Context, userID, storeID, caseID uint64, action, ipAddress, userAgent string) error {

@@ -73,7 +73,7 @@ func (r *Repository) CaseDetail(ctx context.Context, id uint64) (CaseDetail, err
 	}
 
 	rows, err = r.db.QueryContext(ctx, `SELECT id,file_size,file_category,original_filename,mime_type,COALESCE(description,''),
-		DATE_FORMAT(created_at,'%d/%m/%Y %H:%i'),verification_status,COALESCE(verification_notes,'')
+		DATE_FORMAT(created_at,'%d/%m/%Y %H:%i')
 		FROM blmkc_evidence_files WHERE case_id=? AND deleted_at IS NULL ORDER BY created_at DESC,id DESC`, id)
 	if err != nil {
 		return item, err
@@ -81,7 +81,7 @@ func (r *Repository) CaseDetail(ctx context.Context, id uint64) (CaseDetail, err
 	for rows.Next() {
 		var value EvidenceDetail
 		if err := rows.Scan(&value.ID, &value.FileSize, &value.Category, &value.Filename, &value.MIMEType,
-			&value.Description, &value.CreatedAt, &value.VerificationStatus, &value.VerificationNotes); err != nil {
+			&value.Description, &value.CreatedAt); err != nil {
 			rows.Close()
 			return item, err
 		}

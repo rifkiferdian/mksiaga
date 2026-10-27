@@ -92,7 +92,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	if db != nil {
 		navigationService = navigation.NewService(db)
 	}
-	authorized.GET("/", dashboard.NewHandler(cfg.AppName, navigationService).Index)
+	authorized.GET("/", dashboard.NewHandler(cfg.AppName, db, navigationService).Index)
 	authorized.POST("/logout", authHandler.Logout)
 	if db != nil {
 		accessHandler := access.NewHandler(cfg.AppName, access.NewService(access.NewRepository(db)), navigationService)
@@ -138,7 +138,6 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		blmkcRoutes.POST("/cases/:id/evidence", auth.RequirePermission(db, "blmkc.upload-evidence"), blmkcHandler.UploadEvidence)
 		blmkcRoutes.GET("/cases/:id/evidence/:evidenceID/preview", auth.RequirePermission(db, "blmkc.download-evidence"), blmkcHandler.PreviewEvidence)
 		blmkcRoutes.GET("/cases/:id/evidence/:evidenceID/download", auth.RequirePermission(db, "blmkc.download-evidence"), blmkcHandler.DownloadEvidence)
-		blmkcRoutes.POST("/cases/:id/evidence/:evidenceID/verify", auth.RequirePermission(db, "blmkc.review"), blmkcHandler.VerifyEvidence)
 		blmkcRoutes.GET("/wanted", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Wanted)
 		blmkcRoutes.GET("/identity", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Identities)
 		blmkcRoutes.GET("/identity/:id", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.IdentityDetail)

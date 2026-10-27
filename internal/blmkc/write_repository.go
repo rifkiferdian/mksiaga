@@ -295,16 +295,6 @@ func (r *Repository) ReviewCase(ctx context.Context, id, userID uint64, decision
 	if current != "submitted" {
 		return ErrInvalidTransition
 	}
-	if decision == "verified" {
-		var pending int
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM blmkc_evidence_files
-			WHERE case_id=? AND deleted_at IS NULL AND verification_status='pending'`, id).Scan(&pending); err != nil {
-			return err
-		}
-		if pending > 0 {
-			return ErrEvidencePending
-		}
-	}
 	if _, err := tx.ExecContext(ctx, `UPDATE blmkc_cases SET verification_status=?,reviewed_by_user_id=?,reviewed_at=NOW(6),review_notes=? WHERE id=?`,
 		decision, userID, nullString(notes), id); err != nil {
 		return err

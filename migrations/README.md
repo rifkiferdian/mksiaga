@@ -131,6 +131,12 @@ dan status verifikasi bukti. File fisik tetap disimpan pada storage privat;
 database menyimpan metadata, hash SHA-256, pemeriksa, waktu pemeriksaan, dan
 catatan verifikasi.
 
+## Migrasi 000013: penyederhanaan verifikasi BLMKC
+
+`000013_remove_blmkc_evidence_verification.up.sql` menghapus status dan catatan
+verifikasi per berkas. Bukti tetap tersimpan sebagai lampiran kasus, sedangkan
+keputusan verifikasi dilakukan satu kali pada tingkat kasus.
+
 `000012_add_blmkc_evidence_audit_action.up.sql` menambahkan jenis audit khusus
 untuk preview bukti. Preview dan unduhan dicatat terpisah pada
 `blmkc_access_logs`.

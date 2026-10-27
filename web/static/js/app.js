@@ -70,7 +70,7 @@ function filterRecords() {
     row.classList.toggle("hidden", !shown);
     if (shown) visible += 1;
   });
-  if (recordCount) recordCount.textContent = `${visible} catatan`;
+  if (recordCount) recordCount.textContent = `${visible} kasus`;
   recordEmpty?.classList.toggle("hidden", visible !== 0);
 }
 

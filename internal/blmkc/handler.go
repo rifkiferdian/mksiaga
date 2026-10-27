@@ -58,7 +58,7 @@ func (h *Handler) Wanted(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	h.render(c, "blmkc/wanted.html", "Wanted BLMKC", "blmkc-wanted", gin.H{"Data": data})
+	h.render(c, "blmkc/wanted.html", "Wanted / DPO BLMKC", "blmkc-wanted", gin.H{"Data": data})
 }
 
 func (h *Handler) Identities(c *gin.Context) {
@@ -67,7 +67,7 @@ func (h *Handler) Identities(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	h.render(c, "blmkc/identity.html", "Identity BLMKC", "blmkc-identity", gin.H{"Data": data})
+	h.render(c, "blmkc/identity.html", "Pelaku BLMKC", "blmkc-identity", gin.H{"Data": data})
 }
 
 func (h *Handler) IdentityDetail(c *gin.Context) {
@@ -86,12 +86,12 @@ func (h *Handler) IdentityDetail(c *gin.Context) {
 		return
 	}
 	backURL := "/blmkc/identity"
-	backLabel := "Daftar Identity"
+	backLabel := "Daftar Pelaku"
 	if previous, err := url.Parse(c.Request.Referer()); err == nil && previous.Path == "/blmkc/wanted" {
 		backURL = previous.RequestURI()
-		backLabel = "Kembali ke Wanted"
+		backLabel = "Kembali ke Wanted / DPO"
 	}
-	h.render(c, "blmkc/identity_detail.html", "Detail Identity BLMKC", "blmkc-identity", gin.H{
+	h.render(c, "blmkc/identity_detail.html", "Detail Pelaku BLMKC", "blmkc-identity", gin.H{
 		"Data": data, "BackURL": backURL, "BackLabel": backLabel,
 		"SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
@@ -152,8 +152,6 @@ func (h *Handler) ReviewCase(c *gin.Context) {
 			code = "invalid-review"
 		case errors.Is(err, ErrInvalidTransition):
 			code = "already-reviewed"
-		case errors.Is(err, ErrEvidencePending):
-			code = "evidence-pending"
 		case errors.Is(err, sql.ErrNoRows):
 			code = "not-found"
 		default:
@@ -437,7 +435,7 @@ func caseMessage(code string) string {
 		"case-reviewed": "Keputusan verifikasi kasus berhasil disimpan.",
 		"csrf":          "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
 		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
-		"evidence-uploaded": "Bukti kejahatan berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
+		"evidence-uploaded":           "Bukti kejahatan berhasil diunggah.",
 		"evidence-incomplete":         "Foto bukti kasus belum lengkap. Lengkapi semua kategori wajib sebelum melanjutkan.",
 		"invalid-evidence":            "File bukti tidak valid. Gunakan JPG, PNG, WebP, MP4, atau WebM.",
 		"evidence-too-large":          "Ukuran bukti melebihi batas: foto 10 MB atau video 150 MB.",
@@ -451,7 +449,6 @@ func caseMessage(code string) string {
 		"not-found":                   "Kasus atau bukti tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
 		"invalid-review":   "Keputusan tidak valid. Catatan wajib diisi untuk revisi atau penolakan.",
 		"already-reviewed": "Kasus ini sudah diproses atau tidak lagi menunggu verifikasi.",
-		"evidence-pending": "Semua bukti harus diverifikasi atau ditolak sebelum kasus dapat disetujui.",
 	}[code]
 }
 

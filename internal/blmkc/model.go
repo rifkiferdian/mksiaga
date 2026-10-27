@@ -126,7 +126,7 @@ type IdentityVehicle struct {
 type IdentityEvidence struct {
 	ID, CaseID                                  uint64
 	CaseNumber, Filename, MIMEType, Description string
-	SizeLabel, VerificationStatus, CreatedAt    string
+	SizeLabel, CreatedAt                        string
 }
 
 type IdentityDetail struct {
@@ -206,7 +206,7 @@ type EvidenceDetail struct {
 	ID                                                    uint64
 	FileSize                                              uint64
 	Category, Filename, Description, CreatedAt, SizeLabel string
-	MIMEType, VerificationStatus, VerificationNotes       string
+	MIMEType                                              string
 }
 
 type EvidenceFile struct {

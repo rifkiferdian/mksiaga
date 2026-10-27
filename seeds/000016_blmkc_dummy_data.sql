@@ -119,10 +119,10 @@ INSERT INTO blmkc_vehicles(case_id,subject_id,vehicle_type,brand,model,color,lic
 
 INSERT INTO blmkc_evidence_files(
     case_id,subject_id,file_category,original_filename,storage_path,mime_type,file_size,file_hash,
-    captured_at,description,verification_status,verified_by_user_id,verified_at,verification_notes,uploaded_by_user_id,created_at
+    captured_at,description,uploaded_by_user_id,created_at
 ) VALUES
-(@case_5,@subject_5,'incident_photo','dummy-005-incident-stockroom.png','storage/uploads/blmkc/demo/dummy-005-incident-stockroom.png','image/png',2352273,UNHEX('49b712f98632d6ba129e0bfd9df2633a72f3128ffe3e8d92498dcc3e9b94e8ed'),'2026-10-14 17:05:00','DATA DUMMY / SIMULASI: Kondisi rak gudang saat pemeriksaan selisih stok dilakukan.','verified',@creator_id,'2026-10-15 09:00:00','Aset fiktif hasil generasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-14 18:05:00'),
-(@case_5,@subject_5,'stolen_item_photo','dummy-005-stolen-items.png','storage/uploads/blmkc/demo/dummy-005-stolen-items.png','image/png',1959183,UNHEX('c99608a49f166c16ce4014cc7c685b5e48cd43fe9a6ef6a2bd9a166343ea5d0b'),'2026-10-14 17:15:00','DATA DUMMY / SIMULASI: Dua belas kotak produk generik yang didokumentasikan untuk pencocokan inventaris.','verified',@creator_id,'2026-10-15 09:00:00','Aset fiktif hasil generasi untuk demonstrasi aplikasi.',@creator_id,'2026-10-14 18:10:00');
+(@case_5,@subject_5,'incident_photo','dummy-005-incident-stockroom.png','storage/uploads/blmkc/demo/dummy-005-incident-stockroom.png','image/png',2352273,UNHEX('49b712f98632d6ba129e0bfd9df2633a72f3128ffe3e8d92498dcc3e9b94e8ed'),'2026-10-14 17:05:00','DATA DUMMY / SIMULASI: Kondisi rak gudang saat pemeriksaan selisih stok dilakukan.',@creator_id,'2026-10-14 18:05:00'),
+(@case_5,@subject_5,'stolen_item_photo','dummy-005-stolen-items.png','storage/uploads/blmkc/demo/dummy-005-stolen-items.png','image/png',1959183,UNHEX('c99608a49f166c16ce4014cc7c685b5e48cd43fe9a6ef6a2bd9a166343ea5d0b'),'2026-10-14 17:15:00','DATA DUMMY / SIMULASI: Dua belas kotak produk generik yang didokumentasikan untuk pencocokan inventaris.',@creator_id,'2026-10-14 18:10:00');
 
 INSERT INTO blmkc_case_resolutions(case_id,resolution_type,resolution_date,summary,compensation_amount,created_by_user_id,verified_by_user_id) VALUES
 (@case_3,'statement','2026-10-12 21:15:00','DATA DUMMY: Subjek membuat pernyataan dan barang dikembalikan.',0,@creator_id,@creator_id),

@@ -1,8 +1,10 @@
 package dashboard
 
 import (
+	"database/sql"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,14 +16,37 @@ import (
 type Handler struct {
 	appName    string
 	navigation *navigation.Service
+	repository *Repository
+	db         *sql.DB
 }
 
-func NewHandler(appName string, navigationService *navigation.Service) *Handler {
-	return &Handler{appName: appName, navigation: navigationService}
+func NewHandler(appName string, db *sql.DB, navigationService *navigation.Service) *Handler {
+	return &Handler{appName: appName, navigation: navigationService, repository: NewRepository(db), db: db}
 }
 
 func (h *Handler) Index(c *gin.Context) {
 	user, _ := auth.CurrentUser(c)
+	storeID, err := strconv.ParseUint(user.StoreID, 10, 64)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
+	allStores := false
+	for _, role := range strings.Split(user.RoleName, ",") {
+		allStores = allStores || strings.TrimSpace(role) == "superadmin"
+	}
+	data, err := h.repository.Load(c.Request.Context(), storeID, allStores, time.Now())
+	if err != nil {
+		slog.Error("load dashboard data", "error", err)
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
+	canCreate, err := auth.HasPermission(c, h.db, "blmkc.create")
+	if err != nil {
+		slog.Error("load dashboard permission", "error", err)
+		c.Redirect(http.StatusSeeOther, "/errors/500")
+		return
+	}
 	menus, err := h.navigation.Menus(c.Request.Context(), user, "dashboard")
 	if err != nil {
 		slog.Error("prepare dashboard navigation", "error", err)
@@ -47,6 +72,8 @@ func (h *Handler) Index(c *gin.Context) {
 		"DateLabel":     indonesianDate(time.Now()),
 		"Menus":         menus,
 		"CSRFToken":     csrfToken,
+		"Data":          data,
+		"CanCreateCase": canCreate,
 	})
 }
 

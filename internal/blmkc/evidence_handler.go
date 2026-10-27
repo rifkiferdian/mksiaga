@@ -99,7 +99,8 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 		h.redirectEvidenceError(c, caseID, err)
 		return
 	}
-	relativePath := filepath.Join(evidenceStorageRoot, strconv.FormatUint(caseID, 10), token+extension)
+	filename := evidenceFilename(category, token, extension)
+	relativePath := filepath.Join(evidenceStorageRoot, strconv.FormatUint(caseID, 10), filename)
 	absolutePath, err := filepath.Abs(relativePath)
 	if err != nil {
 		h.redirectEvidenceError(c, caseID, err)
@@ -142,7 +143,7 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 	}
 	err = h.service.CreateEvidenceWithVehicle(c.Request.Context(), EvidenceInput{
 		CaseID: caseID, SubjectID: subjectID, UserID: userID, FileSize: uint64(written), Category: category,
-		Filename: originalName, StoragePath: filepath.ToSlash(relativePath), MIMEType: mimeType,
+		Filename: filename, StoragePath: filepath.ToSlash(relativePath), MIMEType: mimeType,
 		Description: description, FileHash: hash.Sum(nil), CapturedAt: capturedAt,
 	}, vehicle)
 	if err != nil {
@@ -155,6 +156,26 @@ func (h *Handler) UploadEvidence(c *gin.Context) {
 		return
 	}
 	h.redirectCase(c, caseID, "success", "evidence-uploaded")
+}
+
+func evidenceFilename(category, token, extension string) string {
+	prefixes := map[string]string{
+		"incident_photo":    "foto-kejadian",
+		"subject_photo":     "foto-pelaku",
+		"stolen_item_photo": "foto-barang-dicuri",
+		"vehicle_photo":     "foto-kendaraan",
+		"cctv_capture":      "foto-cctv",
+		"cctv_video":        "video-cctv",
+	}
+	prefix := prefixes[category]
+	if prefix == "" {
+		prefix = "bukti"
+	}
+	unique := token
+	if len(unique) > 8 {
+		unique = unique[:8]
+	}
+	return prefix + "-" + unique + strings.ToLower(extension)
 }
 
 func (h *Handler) PreviewEvidence(c *gin.Context)  { h.serveEvidence(c, true) }
@@ -212,31 +233,6 @@ func (h *Handler) serveEvidence(c *gin.Context, inline bool) {
 	c.Header("X-Content-Type-Options", "nosniff")
 	c.Header("Cache-Control", "private, no-store")
 	http.ServeContent(c.Writer, c.Request, item.Filename, info.ModTime(), file)
-}
-
-func (h *Handler) VerifyEvidence(c *gin.Context) {
-	caseID, ok := caseRouteID(c)
-	evidenceID, evidenceOK := evidenceRouteID(c)
-	if !ok || !evidenceOK {
-		c.Redirect(http.StatusSeeOther, "/errors/404")
-		return
-	}
-	current, _ := auth.CurrentUser(c)
-	userID, err := strconv.ParseUint(current.ID, 10, 64)
-	if err != nil {
-		h.internalError(c, err)
-		return
-	}
-	approve := c.PostForm("decision") == "verify"
-	if err := h.service.VerifyEvidence(c.Request.Context(), caseID, evidenceID, userID, approve, c.PostForm("notes")); err != nil {
-		h.redirectEvidenceError(c, caseID, err)
-		return
-	}
-	if c.PostForm("return_to") == "verification" || strings.Contains(c.Request.Referer(), "/blmkc/verification/") {
-		c.Redirect(http.StatusSeeOther, "/blmkc/verification/"+strconv.FormatUint(caseID, 10)+"?success=evidence-verified")
-		return
-	}
-	h.redirectCase(c, caseID, "success", "evidence-verified")
 }
 
 func evidenceType(filename string, header []byte) (mimeType, category, extension string, maxSize int64, valid bool) {

@@ -96,7 +96,7 @@ func (r *Repository) identityVehicles(ctx context.Context, id uint64, item *Iden
 
 func (r *Repository) identityEvidence(ctx context.Context, id uint64, item *IdentityDetail) error {
 	rows, err := r.db.QueryContext(ctx, `SELECT e.id,c.id,c.case_number,e.original_filename,e.mime_type,COALESCE(e.description,''),
-		e.file_size,e.verification_status,DATE_FORMAT(e.created_at,'%d/%m/%Y %H:%i')
+		e.file_size,DATE_FORMAT(e.created_at,'%d/%m/%Y %H:%i')
 	FROM blmkc_evidence_files e JOIN blmkc_cases c ON c.id=e.case_id
 	WHERE e.subject_id=? AND e.deleted_at IS NULL AND c.archived_at IS NULL AND `+storescope.Clause(ctx, "c.store_id")+`
 	ORDER BY e.created_at DESC,e.id DESC`, id)
@@ -108,7 +108,7 @@ func (r *Repository) identityEvidence(ctx context.Context, id uint64, item *Iden
 		var value IdentityEvidence
 		var size uint64
 		if err := rows.Scan(&value.ID, &value.CaseID, &value.CaseNumber, &value.Filename, &value.MIMEType,
-			&value.Description, &size, &value.VerificationStatus, &value.CreatedAt); err != nil {
+			&value.Description, &size, &value.CreatedAt); err != nil {
 			return err
 		}
 		value.SizeLabel = evidenceSizeLabel(size)
