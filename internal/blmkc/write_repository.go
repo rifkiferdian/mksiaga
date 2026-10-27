@@ -281,6 +281,41 @@ func (r *Repository) AdvanceStatus(ctx context.Context, id, userID uint64, subje
 	return tx.Commit()
 }
 
+func (r *Repository) ReviewCase(ctx context.Context, id, userID uint64, decision, notes string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var current string
+	if err := tx.QueryRowContext(ctx, `SELECT verification_status FROM blmkc_cases
+		WHERE id=? AND archived_at IS NULL AND `+storescope.Clause(ctx, "store_id")+` FOR UPDATE`, id).Scan(&current); err != nil {
+		return err
+	}
+	if current != "submitted" {
+		return ErrInvalidTransition
+	}
+	if decision == "verified" {
+		var pending int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM blmkc_evidence_files
+			WHERE case_id=? AND deleted_at IS NULL AND verification_status='pending'`, id).Scan(&pending); err != nil {
+			return err
+		}
+		if pending > 0 {
+			return ErrEvidencePending
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE blmkc_cases SET verification_status=?,reviewed_by_user_id=?,reviewed_at=NOW(6),review_notes=? WHERE id=?`,
+		decision, userID, nullString(notes), id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO blmkc_case_events(case_id,actor_user_id,event_type,from_status,to_status,notes)
+		VALUES(?,?,'verification_review',?,?,?)`, id, userID, current, decision, nullString(notes)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func randomToken() (string, error) {
 	buffer := make([]byte, 12)
 	if _, err := rand.Read(buffer); err != nil {

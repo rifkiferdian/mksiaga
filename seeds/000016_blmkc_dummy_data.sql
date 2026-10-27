@@ -48,7 +48,7 @@ INSERT INTO blmkc_cases (
 ) VALUES (
     'DEMO-BLMKC-2026-001',@store_1,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_1 AND code='HIGH_VALUE' LIMIT 1),
     '2026-10-10 18:25:00','2026-10-10 19:00:00','Pencurian produk kosmetik','DATA DUMMY: Rekaman memperlihatkan subjek mengambil dua produk kosmetik dan meninggalkan area tanpa pembayaran.',
-    'wanted','verified','not_reported',350000,@creator_id,@creator_id,'2026-10-10 20:00:00','Data contoh telah diverifikasi untuk demonstrasi.',NULL,NULL
+    'wanted','submitted','not_reported',350000,@creator_id,NULL,NULL,NULL,NULL,NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_1=LAST_INSERT_ID();
 
@@ -58,7 +58,7 @@ INSERT INTO blmkc_cases (
 ) VALUES (
     'DEMO-BLMKC-2026-002',@store_2,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_2 AND code='ENTRANCE_EXIT' LIMIT 1),
     '2026-10-11 14:10:00','2026-10-11 14:40:00','Percobaan pencurian barang toko','DATA DUMMY: Subjek mencoba membawa barang tanpa pembayaran, telah dikenali, tetapi belum berhasil diamankan.',
-    'identified','verified','not_reported',225000,@creator_id,@creator_id,'2026-10-11 16:00:00','Identitas contoh telah dicocokkan.',NULL,NULL
+    'identified','revision','not_reported',225000,@creator_id,@creator_id,'2026-10-11 16:00:00','Mohon lengkapi identitas subjek dan waktu kejadian.',NULL,NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_2=LAST_INSERT_ID();
 
@@ -78,7 +78,7 @@ INSERT INTO blmkc_cases (
 ) VALUES (
     'DEMO-BLMKC-2026-004',@store_4,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_4 AND code='HIGH_VALUE' LIMIT 1),
     '2026-10-13 09:30:00','2026-10-13 10:00:00','Pencurian produk bernilai tinggi','DATA DUMMY: Subjek mengakui pengambilan barang dan menyelesaikan penggantian biaya melalui kesepakatan tertulis.',
-    'resolved','verified','completed',750000,@creator_id,@creator_id,'2026-10-13 13:00:00','Penyelesaian contoh telah diverifikasi.','2026-10-14 10:00:00',NULL
+    'resolved','rejected','completed',750000,@creator_id,@creator_id,'2026-10-13 13:00:00','Pengajuan ditolak karena data kejadian tidak sesuai dengan bukti yang dilampirkan.','2026-10-14 10:00:00',NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_4=LAST_INSERT_ID();
 

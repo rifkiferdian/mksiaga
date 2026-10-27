@@ -232,6 +232,10 @@ func (h *Handler) VerifyEvidence(c *gin.Context) {
 		h.redirectEvidenceError(c, caseID, err)
 		return
 	}
+	if c.PostForm("return_to") == "verification" || strings.Contains(c.Request.Referer(), "/blmkc/verification/") {
+		c.Redirect(http.StatusSeeOther, "/blmkc/verification/"+strconv.FormatUint(caseID, 10)+"?success=evidence-verified")
+		return
+	}
 	h.redirectCase(c, caseID, "success", "evidence-verified")
 }
 
@@ -304,6 +308,10 @@ func (h *Handler) redirectEvidenceError(c *gin.Context, caseID uint64, err error
 	}
 	if c.PostForm("return_to") == "evidence-step" {
 		c.Redirect(http.StatusSeeOther, "/blmkc/cases/"+strconv.FormatUint(caseID, 10)+"/evidence/new?error="+url.QueryEscape(code))
+		return
+	}
+	if c.PostForm("return_to") == "verification" || strings.Contains(c.Request.Referer(), "/blmkc/verification/") {
+		c.Redirect(http.StatusSeeOther, "/blmkc/verification/"+strconv.FormatUint(caseID, 10)+"?error="+url.QueryEscape(code))
 		return
 	}
 	h.redirectCase(c, caseID, "error", code)

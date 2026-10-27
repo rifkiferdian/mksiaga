@@ -113,39 +113,45 @@ func RequireRole(required string) gin.HandlerFunc {
 
 func RequirePermission(db *sql.DB, permission string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		user, ok := CurrentUser(c)
-		if !ok {
+		if _, ok := CurrentUser(c); !ok {
 			c.Redirect(http.StatusSeeOther, "/login")
 			c.Abort()
 			return
 		}
-		for _, role := range strings.Split(user.RoleName, ",") {
-			if strings.TrimSpace(role) == "superadmin" {
-				c.Next()
-				return
-			}
-		}
-		userStoreID, err := strconv.ParseUint(user.UserStoreID, 10, 64)
-		if err != nil {
-			c.Redirect(http.StatusSeeOther, "/errors/403")
-			c.Abort()
-			return
-		}
-		const query = `SELECT EXISTS(
-			SELECT 1 FROM permissions p
-			WHERE p.name=? AND p.guard_name='web' AND (
-				EXISTS(SELECT 1 FROM user_store_permissions usp WHERE usp.user_store_id=? AND usp.permission_id=p.id)
-				OR EXISTS(SELECT 1 FROM user_store_roles usr JOIN role_permissions rp ON rp.role_id=usr.role_id WHERE usr.user_store_id=? AND rp.permission_id=p.id)
-			)
-		)`
-		var allowed bool
-		if err := db.QueryRowContext(c.Request.Context(), query, permission, userStoreID, userStoreID).Scan(&allowed); err != nil || !allowed {
+		allowed, err := HasPermission(c, db, permission)
+		if err != nil || !allowed {
 			c.Redirect(http.StatusSeeOther, "/errors/403")
 			c.Abort()
 			return
 		}
 		c.Next()
 	}
+}
+
+func HasPermission(c *gin.Context, db *sql.DB, permission string) (bool, error) {
+	user, ok := CurrentUser(c)
+	if !ok {
+		return false, nil
+	}
+	for _, role := range strings.Split(user.RoleName, ",") {
+		if strings.TrimSpace(role) == "superadmin" {
+			return true, nil
+		}
+	}
+	userStoreID, err := strconv.ParseUint(user.UserStoreID, 10, 64)
+	if err != nil {
+		return false, nil
+	}
+	const query = `SELECT EXISTS(
+		SELECT 1 FROM permissions p
+		WHERE p.name=? AND p.guard_name='web' AND (
+			EXISTS(SELECT 1 FROM user_store_permissions usp WHERE usp.user_store_id=? AND usp.permission_id=p.id)
+			OR EXISTS(SELECT 1 FROM user_store_roles usr JOIN role_permissions rp ON rp.role_id=usr.role_id WHERE usr.user_store_id=? AND rp.permission_id=p.id)
+		)
+	)`
+	var allowed bool
+	err = db.QueryRowContext(c.Request.Context(), query, permission, userStoreID, userStoreID).Scan(&allowed)
+	return allowed, err
 }
 
 func CSRFToken(c *gin.Context) (string, error) {

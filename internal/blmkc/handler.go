@@ -16,12 +16,13 @@ import (
 
 type Handler struct {
 	appName    string
+	db         *sql.DB
 	service    *Service
 	navigation *navigation.Service
 }
 
-func NewHandler(appName string, service *Service, navigationService *navigation.Service) *Handler {
-	return &Handler{appName: appName, service: service, navigation: navigationService}
+func NewHandler(appName string, db *sql.DB, service *Service, navigationService *navigation.Service) *Handler {
+	return &Handler{appName: appName, db: db, service: service, navigation: navigationService}
 }
 
 func (h *Handler) Dashboard(c *gin.Context) {
@@ -102,7 +103,66 @@ func (h *Handler) Verifications(c *gin.Context) {
 		h.internalError(c, err)
 		return
 	}
-	h.render(c, "blmkc/verification.html", "Verifikasi BLMKC", "blmkc-verification", gin.H{"Data": data})
+	h.render(c, "blmkc/verification.html", "Verifikasi BLMKC", "blmkc-verification", gin.H{
+		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
+}
+
+func (h *Handler) VerificationDetail(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	data, err := h.service.CaseDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	h.render(c, "blmkc/detail.html", "Pemeriksaan Kasus BLMKC", "blmkc-verification", gin.H{
+		"Data": data, "ReviewMode": true, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+	})
+}
+
+func (h *Handler) ReviewCase(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Redirect(http.StatusSeeOther, "/errors/404")
+		return
+	}
+	path := "/blmkc/verification/" + strconv.FormatUint(id, 10)
+	if !auth.ValidCSRF(c, c.PostForm("csrf_token")) {
+		c.Redirect(http.StatusSeeOther, path+"?error=csrf")
+		return
+	}
+	current, _ := auth.CurrentUser(c)
+	userID, err := strconv.ParseUint(current.ID, 10, 64)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	if err := h.service.ReviewCase(c.Request.Context(), id, userID, c.PostForm("decision"), c.PostForm("notes")); err != nil {
+		code := "failed"
+		switch {
+		case errors.Is(err, ErrInvalid):
+			code = "invalid-review"
+		case errors.Is(err, ErrInvalidTransition):
+			code = "already-reviewed"
+		case errors.Is(err, ErrEvidencePending):
+			code = "evidence-pending"
+		case errors.Is(err, sql.ErrNoRows):
+			code = "not-found"
+		default:
+			slog.Error("review BLMKC case", "error", err)
+		}
+		c.Redirect(http.StatusSeeOther, path+"?error="+url.QueryEscape(code))
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/blmkc/verification?status="+url.QueryEscape(c.PostForm("decision"))+"&success=case-reviewed")
 }
 
 func (h *Handler) NewCase(c *gin.Context) {
@@ -149,8 +209,13 @@ func (h *Handler) CaseDetail(c *gin.Context) {
 		return
 	}
 	data.Evidence = casePhotoEvidence(data.Evidence)
+	canUpload, err := auth.HasPermission(c, h.db, "blmkc.upload-evidence")
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
 	h.render(c, "blmkc/detail.html", "Detail Kasus BLMKC", "blmkc-cases", gin.H{
-		"Data": data, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
+		"Data": data, "CanUploadEvidence": canUpload, "SuccessMessage": caseMessage(c.Query("success")), "ErrorMessage": caseMessage(c.Query("error")),
 	})
 }
 
@@ -369,7 +434,8 @@ func (h *Handler) redirectCase(c *gin.Context, id uint64, key, value string) {
 func caseMessage(code string) string {
 	return map[string]string{
 		"created": "Kasus berhasil dibuat.", "updated": "Kasus berhasil diperbarui.", "status-updated": "Status kasus berhasil diperbarui.",
-		"csrf": "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
+		"case-reviewed": "Keputusan verifikasi kasus berhasil disimpan.",
+		"csrf":          "Sesi form berakhir. Muat ulang halaman lalu coba kembali.", "invalid": "Data kasus belum lengkap atau tidak valid.",
 		"invalid-transition": "Perubahan status tidak diizinkan.", "subject-required": "Nama atau identitas subjek wajib diisi sebelum menjadi Identity.",
 		"evidence-uploaded": "Bukti kejahatan berhasil diunggah dan menunggu verifikasi.", "evidence-verified": "Status verifikasi bukti berhasil diperbarui.",
 		"evidence-incomplete":         "Foto bukti kasus belum lengkap. Lengkapi semua kategori wajib sebelum melanjutkan.",
@@ -383,6 +449,9 @@ func caseMessage(code string) string {
 		"resolution-saved":            "Penyelesaian kasus dan dokumen pendukung berhasil disimpan.",
 		"invalid-resolution":          "Data penyelesaian kasus belum lengkap atau tidak valid.",
 		"not-found":                   "Kasus atau bukti tidak ditemukan.", "failed": "Operasi kasus gagal diproses.",
+		"invalid-review":   "Keputusan tidak valid. Catatan wajib diisi untuk revisi atau penolakan.",
+		"already-reviewed": "Kasus ini sudah diproses atau tidak lagi menunggu verifikasi.",
+		"evidence-pending": "Semua bukti harus diverifikasi atau ditolak sebelum kasus dapat disetujui.",
 	}[code]
 }
 

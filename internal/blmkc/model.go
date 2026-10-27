@@ -251,6 +251,8 @@ type CaseDetail struct {
 	CameraName            string
 	ReporterName          string
 	ReviewerName          string
+	ReviewedAt            string
+	ReviewNotes           string
 	SubjectID             uint64
 	SubjectNumber         string
 	SubjectName           string

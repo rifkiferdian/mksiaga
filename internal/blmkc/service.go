@@ -12,6 +12,7 @@ var (
 	ErrInvalid           = errors.New("invalid BLMKC case")
 	ErrInvalidTransition = errors.New("invalid BLMKC status transition")
 	ErrSubjectRequired   = errors.New("subject identity is required")
+	ErrEvidencePending   = errors.New("case evidence is still pending verification")
 )
 
 type Service struct {
@@ -68,6 +69,16 @@ func (s *Service) Verifications(ctx context.Context, search, status string) (Ver
 		status = "submitted"
 	}
 	return s.repository.Verifications(ctx, search, status)
+}
+
+func (s *Service) ReviewCase(ctx context.Context, id, userID uint64, decision, notes string) error {
+	decision = strings.TrimSpace(decision)
+	notes = strings.TrimSpace(notes)
+	if id == 0 || userID == 0 || (decision != "verified" && decision != "revision" && decision != "rejected") ||
+		utf8.RuneCountInString(notes) > 2000 || ((decision == "revision" || decision == "rejected") && notes == "") {
+		return ErrInvalid
+	}
+	return s.repository.ReviewCase(ctx, id, userID, decision, notes)
 }
 
 func (s *Service) CaseForm(ctx context.Context, id uint64) (CaseFormData, error) {

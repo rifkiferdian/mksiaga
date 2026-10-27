@@ -9,11 +9,14 @@ SET @spv_security_role_id=LAST_INSERT_ID();
 
 INSERT IGNORE INTO role_permissions(role_id,permission_id)
 SELECT @spv_security_role_id,id FROM permissions
-WHERE name IN ('daily-reports.view','daily-reports.review');
+WHERE name IN (
+    'daily-reports.view','daily-reports.review',
+    'blmkc.view','blmkc.view-sensitive','blmkc.review','blmkc.download-evidence'
+);
 
 SELECT id INTO @store_id FROM stores
 WHERE status='active' AND deleted_at IS NULL
-ORDER BY (code='PUSAT') DESC,id
+ORDER BY (code='MK1') DESC,(code='PUSAT') DESC,id
 LIMIT 1;
 
 INSERT INTO users(employee_number,name,username,email,password_hash,status)

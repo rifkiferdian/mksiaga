@@ -14,7 +14,7 @@ func (r *Repository) CaseDetail(ctx context.Context, id uint64) (CaseDetail, err
 		c.case_status,c.verification_status,c.legal_status,
 		CASE WHEN c.loss_amount IS NULL THEN '-' ELSE CONCAT('Rp ',FORMAT(c.loss_amount,0,'id_ID')) END,
 		COALESCE(it.name,'Belum ditentukan'),COALESCE(a.name,'-'),COALESCE(cam.name,'-'),
-		reporter.name,COALESCE(reviewer.name,'-'),sub.id,sub.subject_number,
+		reporter.name,COALESCE(reviewer.name,'-'),COALESCE(DATE_FORMAT(c.reviewed_at,'%d/%m/%Y %H:%i'),'-'),COALESCE(c.review_notes,''),sub.id,sub.subject_number,
 		COALESCE(NULLIF(sub.full_name,''),'Belum diketahui'),sub.identity_status,
 		COALESCE((SELECT GROUP_CONCAT(sa.alias_name ORDER BY sa.alias_name SEPARATOR ', ') FROM blmkc_subject_aliases sa WHERE sa.subject_id=sub.id),'-')
 	FROM blmkc_cases c
@@ -30,7 +30,7 @@ func (r *Repository) CaseDetail(ctx context.Context, id uint64) (CaseDetail, err
 		&item.ID, &item.CaseNumber, &item.StoreID, &item.StoreName, &item.Title, &item.Chronology,
 		&item.OccurredAt, &item.ReportedAt, &item.CaseStatus, &item.VerificationStatus, &item.LegalStatus,
 		&item.LossAmount, &item.IncidentType, &item.AreaName, &item.CameraName, &item.ReporterName,
-		&item.ReviewerName, &item.SubjectID, &item.SubjectNumber, &item.SubjectName,
+		&item.ReviewerName, &item.ReviewedAt, &item.ReviewNotes, &item.SubjectID, &item.SubjectNumber, &item.SubjectName,
 		&item.SubjectIdentityStatus, &item.SubjectAliases)
 	if err != nil {
 		return item, err
