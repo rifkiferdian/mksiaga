@@ -70,10 +70,17 @@ type CaseListData struct {
 type WantedData struct {
 	Cases           []Case
 	CasePhotos      map[uint64][]IdentityCasePhoto
+	Stores          []Option
 	Search          string
 	Status          string
+	StoreID         uint64
 	WantedCount     int
 	IdentifiedCount int
+}
+
+type PublicWantedDetailData struct {
+	Case   Case
+	Photos []IdentityCasePhoto
 }
 
 type Identity struct {

@@ -2,6 +2,7 @@ package blmkc
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"time"
@@ -52,6 +53,24 @@ func (s *Service) Wanted(ctx context.Context, search, status string) (WantedData
 		status = ""
 	}
 	return s.repository.Wanted(ctx, search, status)
+}
+
+func (s *Service) PublicWanted(ctx context.Context, search, status string, storeID uint64) (WantedData, error) {
+	if status != "wanted" && status != "identified" {
+		status = ""
+	}
+	return s.repository.PublicWanted(ctx, strings.TrimSpace(search), status, storeID)
+}
+
+func (s *Service) PublicWantedDetail(ctx context.Context, caseID uint64) (PublicWantedDetailData, error) {
+	if caseID == 0 {
+		return PublicWantedDetailData{}, sql.ErrNoRows
+	}
+	return s.repository.PublicWantedDetail(ctx, caseID)
+}
+
+func (s *Service) PublicWantedEvidence(ctx context.Context, caseID, evidenceID uint64) (EvidenceFile, error) {
+	return s.repository.PublicWantedEvidence(ctx, caseID, evidenceID)
 }
 
 func (s *Service) Identities(ctx context.Context, search string) (IdentityData, error) {

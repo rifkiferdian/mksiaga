@@ -48,7 +48,7 @@ INSERT INTO blmkc_cases (
 ) VALUES (
     'DEMO-BLMKC-2026-001',@store_1,@theft_type,(SELECT id FROM master_area WHERE store_id=@store_1 AND code='HIGH_VALUE' LIMIT 1),
     '2026-10-10 18:25:00','2026-10-10 19:00:00','Pencurian produk kosmetik','DATA DUMMY: Rekaman memperlihatkan subjek mengambil dua produk kosmetik dan meninggalkan area tanpa pembayaran.',
-    'wanted','submitted','not_reported',350000,@creator_id,NULL,NULL,NULL,NULL,NULL
+    'wanted','verified','not_reported',350000,@creator_id,@creator_id,'2026-10-10 20:00:00','Data dummy telah diverifikasi supervisor dan dipublikasikan sebagai Wanted / DPO.',NULL,NULL
 ) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id),store_id=VALUES(store_id),incident_type_id=VALUES(incident_type_id),area_id=VALUES(area_id),occurred_at=VALUES(occurred_at),reported_at=VALUES(reported_at),title=VALUES(title),chronology=VALUES(chronology),case_status=VALUES(case_status),verification_status=VALUES(verification_status),legal_status=VALUES(legal_status),loss_amount=VALUES(loss_amount),reported_by_user_id=VALUES(reported_by_user_id),reviewed_by_user_id=VALUES(reviewed_by_user_id),reviewed_at=VALUES(reviewed_at),review_notes=VALUES(review_notes),closed_at=VALUES(closed_at),archived_at=NULL;
 SET @case_1=LAST_INSERT_ID();
 

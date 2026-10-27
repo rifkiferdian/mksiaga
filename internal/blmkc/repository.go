@@ -125,6 +125,93 @@ func (r *Repository) Wanted(ctx context.Context, search, status string) (WantedD
 	return data, nil
 }
 
+func (r *Repository) PublicWanted(ctx context.Context, search, status string, storeID uint64) (WantedData, error) {
+	ctx = storescope.ForAll(ctx)
+	data := WantedData{Search: search, Status: status}
+	stores, err := storescope.Stores(ctx, r.db)
+	if err != nil {
+		return data, fmt.Errorf("load public BLMKC stores: %w", err)
+	}
+	validStore := false
+	for _, store := range stores {
+		data.Stores = append(data.Stores, Option{ID: store.ID, Code: store.Code, Name: store.Name})
+		validStore = validStore || store.ID == storeID
+	}
+	if validStore {
+		data.StoreID = storeID
+	} else {
+		storeID = 0
+	}
+	countWhere := ""
+	countArgs := make([]any, 0, 1)
+	if storeID > 0 {
+		countWhere = " AND store_id=?"
+		countArgs = append(countArgs, storeID)
+	}
+	if err := r.db.QueryRowContext(ctx, `SELECT
+		COALESCE(SUM(case_status='wanted'),0),COALESCE(SUM(case_status='identified'),0)
+		FROM blmkc_cases WHERE archived_at IS NULL AND verification_status='verified'
+		AND case_status IN ('wanted','identified')`+countWhere, countArgs...).Scan(&data.WantedCount, &data.IdentifiedCount); err != nil {
+		return data, fmt.Errorf("count public BLMKC wanted: %w", err)
+	}
+	clauses := []string{"c.verification_status='verified'", "c.case_status IN ('wanted','identified')"}
+	args := make([]any, 0, 8)
+	if storeID > 0 {
+		clauses = append(clauses, "c.store_id=?")
+		args = append(args, storeID)
+	}
+	if status != "" {
+		clauses = append(clauses, "c.case_status=?")
+		args = append(args, status)
+	}
+	if search != "" {
+		term := "%" + search + "%"
+		clauses = append(clauses, `(c.case_number LIKE ? OR c.title LIKE ? OR EXISTS(
+			SELECT 1 FROM blmkc_case_subjects cs JOIN blmkc_subjects sub ON sub.id=cs.subject_id
+			WHERE cs.case_id=c.id AND (sub.full_name LIKE ? OR sub.subject_number LIKE ?)))`)
+		args = append(args, term, term, term, term)
+	}
+	items, err := r.queryCases(ctx, " AND "+strings.Join(clauses, " AND "), args, 100, 0)
+	if err != nil {
+		return data, err
+	}
+	data.Cases = items
+	data.CasePhotos, err = r.wantedCasePhotos(ctx, items)
+	return data, err
+}
+
+func (r *Repository) PublicWantedDetail(ctx context.Context, caseID uint64) (PublicWantedDetailData, error) {
+	ctx = storescope.ForAll(ctx)
+	var data PublicWantedDetailData
+	items, err := r.queryCases(ctx, " AND c.id=? AND c.archived_at IS NULL AND c.verification_status='verified' AND c.case_status IN ('wanted','identified')", []any{caseID}, 1, 0)
+	if err != nil {
+		return data, err
+	}
+	if len(items) == 0 {
+		return data, sql.ErrNoRows
+	}
+	data.Case = items[0]
+	photos, err := r.wantedCasePhotos(ctx, items)
+	if err != nil {
+		return data, err
+	}
+	data.Photos = photos[caseID]
+	return data, nil
+}
+
+func (r *Repository) PublicWantedEvidence(ctx context.Context, caseID, evidenceID uint64) (EvidenceFile, error) {
+	var item EvidenceFile
+	err := r.db.QueryRowContext(ctx, `SELECT e.id,e.case_id,c.store_id,e.file_size,e.file_category,
+		e.original_filename,e.storage_path,e.mime_type
+		FROM blmkc_evidence_files e JOIN blmkc_cases c ON c.id=e.case_id
+		WHERE e.id=? AND e.case_id=? AND e.deleted_at IS NULL AND e.file_category='subject_photo'
+		AND e.mime_type LIKE 'image/%' AND c.archived_at IS NULL AND c.verification_status='verified'
+		AND c.case_status IN ('wanted','identified')`, evidenceID, caseID).Scan(
+		&item.ID, &item.CaseID, &item.StoreID, &item.FileSize, &item.Category,
+		&item.Filename, &item.StoragePath, &item.MIMEType)
+	return item, err
+}
+
 func (r *Repository) wantedCasePhotos(ctx context.Context, cases []Case) (map[uint64][]IdentityCasePhoto, error) {
 	photos := make(map[uint64][]IdentityCasePhoto)
 	if len(cases) == 0 {

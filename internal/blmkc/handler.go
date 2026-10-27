@@ -61,6 +61,42 @@ func (h *Handler) Wanted(c *gin.Context) {
 	h.render(c, "blmkc/wanted.html", "Wanted / DPO BLMKC", "blmkc-wanted", gin.H{"Data": data})
 }
 
+func (h *Handler) PublicWanted(c *gin.Context) {
+	storeID, _ := strconv.ParseUint(c.Query("store_id"), 10, 64)
+	data, err := h.service.PublicWanted(c.Request.Context(), c.Query("q"), strings.TrimSpace(c.Query("status")), storeID)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	c.Header("X-Robots-Tag", "noindex, nofollow, noarchive")
+	c.Header("Cache-Control", "private, no-store")
+	c.HTML(http.StatusOK, "blmkc/public_wanted.html", gin.H{
+		"Title": "Wanted / DPO", "AppName": h.appName, "IsDashboard": true, "NoIndex": true, "Data": data,
+	})
+}
+
+func (h *Handler) PublicWantedDetail(c *gin.Context) {
+	id, ok := caseRouteID(c)
+	if !ok {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	data, err := h.service.PublicWantedDetail(c.Request.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	c.Header("X-Robots-Tag", "noindex, nofollow, noarchive")
+	c.Header("Cache-Control", "private, no-store")
+	c.HTML(http.StatusOK, "blmkc/public_wanted_detail.html", gin.H{
+		"Title": data.Case.Title, "AppName": h.appName, "IsDashboard": true, "NoIndex": true, "Data": data,
+	})
+}
+
 func (h *Handler) Identities(c *gin.Context) {
 	data, err := h.service.Identities(c.Request.Context(), strings.TrimSpace(c.Query("q")))
 	if err != nil {

@@ -181,6 +181,50 @@ func evidenceFilename(category, token, extension string) string {
 func (h *Handler) PreviewEvidence(c *gin.Context)  { h.serveEvidence(c, true) }
 func (h *Handler) DownloadEvidence(c *gin.Context) { h.serveEvidence(c, false) }
 
+func (h *Handler) PublicWantedPhoto(c *gin.Context) {
+	caseID, ok := caseRouteID(c)
+	evidenceID, evidenceOK := evidenceRouteID(c)
+	if !ok || !evidenceOK {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	item, err := h.service.PublicWantedEvidence(c.Request.Context(), caseID, evidenceID)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	path, err := safeEvidencePath(item.StoragePath)
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	file, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		h.internalError(c, err)
+		return
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() || uint64(info.Size()) != item.FileSize {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Header("Content-Type", item.MIMEType)
+	c.Header("Content-Disposition", "inline")
+	c.Header("X-Content-Type-Options", "nosniff")
+	c.Header("X-Robots-Tag", "noindex, noarchive")
+	c.Header("Cache-Control", "public, max-age=300")
+	http.ServeContent(c.Writer, c.Request, item.Filename, info.ModTime(), file)
+}
+
 func (h *Handler) serveEvidence(c *gin.Context, inline bool) {
 	caseID, ok := caseRouteID(c)
 	evidenceID, evidenceOK := evidenceRouteID(c)

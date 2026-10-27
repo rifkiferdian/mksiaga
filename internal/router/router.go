@@ -86,6 +86,12 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 	authHandler := auth.NewHandler(cfg.AppName, authService, cfg.Session.CookieSecure)
 	r.GET("/login", authHandler.ShowLogin)
 	r.POST("/login", authHandler.Login)
+	if db != nil {
+		publicBLMKCHandler := blmkc.NewHandler(cfg.AppName, db, blmkc.NewService(blmkc.NewRepository(db), cfg.BLMKCDataKey), nil)
+		r.GET("/wanted", publicBLMKCHandler.PublicWanted)
+		r.GET("/wanted/cases/:id", publicBLMKCHandler.PublicWantedDetail)
+		r.GET("/wanted/cases/:id/photos/:evidenceID", publicBLMKCHandler.PublicWantedPhoto)
+	}
 	authorized := r.Group("/")
 	authorized.Use(auth.RequireLogin(db))
 	var navigationService *navigation.Service
