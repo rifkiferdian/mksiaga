@@ -25,6 +25,7 @@ import (
 	incidentTypeManagement "mksiaga/internal/incidenttype"
 	"mksiaga/internal/navigation"
 	"mksiaga/internal/profile"
+	"mksiaga/internal/securityreport"
 	"mksiaga/internal/sessionmanagement"
 	shiftManagement "mksiaga/internal/shift"
 	storeManagement "mksiaga/internal/store"
@@ -107,6 +108,7 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		cameraHandler := cameraManagement.NewHandler(cfg.AppName, cameraManagement.NewService(cameraManagement.NewRepository(db)), navigationService)
 		checklistHandler := checklistManagement.NewHandler(cfg.AppName, checklistManagement.NewService(checklistManagement.NewRepository(db)), navigationService)
 		dailyReportHandler := dailyreport.NewHandler(cfg.AppName, dailyreport.NewService(dailyreport.NewRepository(db)), navigationService)
+		securityReportHandler := securityreport.NewHandler(cfg.AppName, securityreport.NewService(securityreport.NewRepository(db)), navigationService)
 		blmkcHandler := blmkc.NewHandler(cfg.AppName, db, blmkc.NewService(blmkc.NewRepository(db), cfg.BLMKCDataKey), navigationService)
 		incidentTypeHandler := incidentTypeManagement.NewHandler(cfg.AppName, incidentTypeManagement.NewService(incidentTypeManagement.NewRepository(db)), navigationService)
 		profileHandler := profile.NewHandler(cfg.AppName, profile.NewService(profile.NewRepository(db)), navigationService)
@@ -126,6 +128,11 @@ func New(cfg config.Config, db *sql.DB, webRoot string) (*gin.Engine, error) {
 		reports.POST("/daily/:id/revise", auth.RequirePermission(db, "daily-reports.create"), dailyReportHandler.Revise)
 		reports.POST("/daily/:id/review", auth.RequirePermission(db, "daily-reports.review"), dailyReportHandler.Review)
 		reports.POST("/daily/:id/delete", auth.RequirePermission(db, "daily-reports.delete"), dailyReportHandler.Delete)
+		reports.GET("/security", auth.RequirePermission(db, "security-shift-reports.view"), securityReportHandler.Index)
+		reports.GET("/security/new", auth.RequirePermission(db, "security-shift-reports.create"), securityReportHandler.New)
+		reports.POST("/security", auth.RequirePermission(db, "security-shift-reports.create"), securityReportHandler.Create)
+		reports.GET("/security/:id", auth.RequirePermission(db, "security-shift-reports.view"), securityReportHandler.Show)
+		reports.POST("/security/:id/hourly-logs", auth.RequirePermission(db, "security-shift-reports.create"), securityReportHandler.AddHourlyLog)
 		blmkcRoutes := authorized.Group("/blmkc")
 		blmkcRoutes.Use(storescope.Middleware(db))
 		blmkcRoutes.GET("", auth.RequirePermission(db, "blmkc.view"), blmkcHandler.Dashboard)

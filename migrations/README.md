@@ -141,6 +141,19 @@ keputusan verifikasi dilakukan satu kali pada tingkat kasus.
 untuk preview bukti. Preview dan unduhan dicatat terpisah pada
 `blmkc_access_logs`.
 
+## Migrasi 000014: laporan shift security
+
+`000014_create_security_shift_reports.up.sql` membuat satu laporan untuk setiap
+kombinasi toko, tanggal, dan shift. Satu security ditunjuk sebagai perwakilan
+laporan, sedangkan seluruh petugas lain dicatat pada tabel anggota shift.
+
+Catatan per jam berada dalam laporan shift yang sama dan mempunyai level
+`normal`, `waspada`, atau `urgent`. Pembuat setiap catatan tetap disimpan untuk
+audit walaupun laporan mewakili seluruh regu. Tabel serah-terima menghubungkan
+laporan shift lama dengan laporan shift penerima serta menyimpan tanda tangan
+penyerah, penerima, dan supervisor. Lampiran dan riwayat aktivitas disimpan pada
+tabel terpisah.
+
 ## Seed development
 
 `seeds/000001_development_superadmin.sql` membuat akun lokal `admin`, role `superadmin`, dan `Store Pusat`. Seed bersifat idempotent sehingga aman dijalankan ulang, tetapi akan mengembalikan password akun tersebut ke nilai development yang tercantum di dalam file.

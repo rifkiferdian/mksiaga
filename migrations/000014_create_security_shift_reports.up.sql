@@ -1,0 +1,123 @@
+CREATE TABLE security_shift_reports (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    store_id BIGINT UNSIGNED NOT NULL,
+    shift_id BIGINT UNSIGNED NOT NULL,
+    report_date DATE NOT NULL,
+    representative_user_id BIGINT UNSIGNED NOT NULL,
+    supervisor_user_id BIGINT UNSIGNED NULL,
+    work_started_at DATETIME(6) NOT NULL,
+    work_ended_at DATETIME(6) NULL,
+    opening_notes TEXT NULL,
+    closing_summary TEXT NULL,
+    status ENUM('draft','active','waiting_handover','waiting_supervisor','revision','completed') NOT NULL DEFAULT 'draft',
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    completed_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY security_shift_report_identity_unique (store_id,report_date,shift_id),
+    KEY security_shift_report_status_index (store_id,status,report_date),
+    KEY security_shift_report_representative_index (representative_user_id),
+    CONSTRAINT security_shift_report_store_fk FOREIGN KEY (store_id) REFERENCES stores(id),
+    CONSTRAINT security_shift_report_shift_fk FOREIGN KEY (shift_id) REFERENCES master_shift(id),
+    CONSTRAINT security_shift_report_representative_fk FOREIGN KEY (representative_user_id) REFERENCES users(id),
+    CONSTRAINT security_shift_report_supervisor_fk FOREIGN KEY (supervisor_user_id) REFERENCES users(id),
+    CONSTRAINT security_shift_report_creator_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE security_shift_report_members (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    report_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    member_role ENUM('representative','member') NOT NULL DEFAULT 'member',
+    joined_at DATETIME(6) NULL,
+    left_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY security_shift_report_member_unique (report_id,user_id),
+    KEY security_shift_report_member_user_index (user_id),
+    CONSTRAINT security_shift_report_member_report_fk FOREIGN KEY (report_id) REFERENCES security_shift_reports(id) ON DELETE CASCADE,
+    CONSTRAINT security_shift_report_member_user_fk FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE security_shift_hourly_logs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    report_id BIGINT UNSIGNED NOT NULL,
+    reported_at DATETIME(6) NOT NULL,
+    level ENUM('normal','waspada','urgent') NOT NULL DEFAULT 'normal',
+    area_id BIGINT UNSIGNED NULL,
+    location_notes VARCHAR(255) NULL,
+    description TEXT NOT NULL,
+    action_taken TEXT NULL,
+    follow_up_status ENUM('none','monitoring','in_progress','completed','forwarded') NOT NULL DEFAULT 'none',
+    created_by_user_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY security_shift_hourly_report_time_index (report_id,reported_at),
+    KEY security_shift_hourly_level_index (level,follow_up_status),
+    KEY security_shift_hourly_area_index (area_id),
+    CONSTRAINT security_shift_hourly_report_fk FOREIGN KEY (report_id) REFERENCES security_shift_reports(id) ON DELETE CASCADE,
+    CONSTRAINT security_shift_hourly_area_fk FOREIGN KEY (area_id) REFERENCES master_area(id),
+    CONSTRAINT security_shift_hourly_creator_fk FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE security_shift_hourly_log_attachments (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    hourly_log_id BIGINT UNSIGNED NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    storage_path VARCHAR(500) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size BIGINT UNSIGNED NOT NULL,
+    uploaded_by_user_id BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY security_shift_attachment_log_index (hourly_log_id),
+    CONSTRAINT security_shift_attachment_log_fk FOREIGN KEY (hourly_log_id) REFERENCES security_shift_hourly_logs(id) ON DELETE CASCADE,
+    CONSTRAINT security_shift_attachment_uploader_fk FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE security_shift_handovers (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    from_report_id BIGINT UNSIGNED NOT NULL,
+    to_report_id BIGINT UNSIGNED NULL,
+    handed_over_by_user_id BIGINT UNSIGNED NOT NULL,
+    received_by_user_id BIGINT UNSIGNED NULL,
+    supervisor_user_id BIGINT UNSIGNED NULL,
+    handover_notes TEXT NULL,
+    pending_items TEXT NULL,
+    inventory_notes TEXT NULL,
+    giver_signature MEDIUMTEXT NULL,
+    receiver_signature MEDIUMTEXT NULL,
+    supervisor_signature MEDIUMTEXT NULL,
+    handed_over_at DATETIME(6) NULL,
+    received_at DATETIME(6) NULL,
+    supervisor_signed_at DATETIME(6) NULL,
+    status ENUM('draft','waiting_receiver','waiting_supervisor','revision','completed') NOT NULL DEFAULT 'draft',
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    UNIQUE KEY security_shift_handover_from_report_unique (from_report_id),
+    UNIQUE KEY security_shift_handover_to_report_unique (to_report_id),
+    KEY security_shift_handover_status_index (status),
+    CONSTRAINT security_shift_handover_from_report_fk FOREIGN KEY (from_report_id) REFERENCES security_shift_reports(id),
+    CONSTRAINT security_shift_handover_to_report_fk FOREIGN KEY (to_report_id) REFERENCES security_shift_reports(id),
+    CONSTRAINT security_shift_handover_giver_fk FOREIGN KEY (handed_over_by_user_id) REFERENCES users(id),
+    CONSTRAINT security_shift_handover_receiver_fk FOREIGN KEY (received_by_user_id) REFERENCES users(id),
+    CONSTRAINT security_shift_handover_supervisor_fk FOREIGN KEY (supervisor_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE security_shift_report_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    report_id BIGINT UNSIGNED NOT NULL,
+    actor_user_id BIGINT UNSIGNED NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    from_status VARCHAR(30) NULL,
+    to_status VARCHAR(30) NULL,
+    notes TEXT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    KEY security_shift_report_event_index (report_id,created_at),
+    CONSTRAINT security_shift_report_event_report_fk FOREIGN KEY (report_id) REFERENCES security_shift_reports(id) ON DELETE CASCADE,
+    CONSTRAINT security_shift_report_event_actor_fk FOREIGN KEY (actor_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
