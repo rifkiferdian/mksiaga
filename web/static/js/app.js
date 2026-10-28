@@ -745,3 +745,174 @@ statusDialog?.addEventListener("click", (event) => {
     statusDialog.classList.remove("flex");
   }
 });
+
+// Show BLMKC evidence photos in a gallery modal without leaving the page.
+const blmkcImagePreviewLinks = [...document.querySelectorAll(
+  'a[target="_blank"][href*="/blmkc/"], a[target="_blank"][href^="/wanted/cases/"]'
+)].filter((link) => link.querySelector("img"));
+if (blmkcImagePreviewLinks.length) {
+  const lightbox = document.createElement("div");
+  lightbox.className = "fixed inset-0 z-[100] hidden items-center justify-center bg-slate-950/80 p-3 backdrop-blur-sm sm:p-6";
+  lightbox.setAttribute("role", "dialog");
+  lightbox.setAttribute("aria-modal", "true");
+  lightbox.setAttribute("aria-labelledby", "blmkcImageTitle");
+  lightbox.innerHTML = `
+    <div data-blmkc-image-panel class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border-2 border-orange-400 bg-white shadow-2xl shadow-orange-950/30 sm:max-h-[calc(100dvh-3rem)]">
+      <header class="relative z-20 flex shrink-0 items-center justify-between gap-4 border-b border-orange-400 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 px-4 py-3 text-white sm:px-5">
+        <div class="min-w-0">
+          <h2 id="blmkcImageTitle" class="truncate text-sm font-bold text-white sm:text-base"><i class="fa-solid fa-image mr-2 text-orange-100"></i>Pratinjau Foto Bukti</h2>
+          <p data-blmkc-image-count class="mt-0.5 text-[10px] font-semibold text-orange-100"></p>
+        </div>
+        <button type="button" data-blmkc-image-close class="grid size-10 shrink-0 place-items-center rounded-xl border border-white/30 bg-white/15 text-lg text-white transition hover:bg-white hover:text-orange-600" aria-label="Tutup pratinjau">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+      <div class="relative isolate flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-950 p-2 sm:p-4">
+        <div data-blmkc-image-loading class="absolute inset-0 grid place-items-center text-white">
+          <span class="text-center"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i><small class="mt-3 block text-xs text-slate-300">Memuat foto...</small></span>
+        </div>
+        <img data-blmkc-image-full draggable="false" class="hidden max-h-full max-w-full touch-none select-none rounded-lg object-contain transition-transform duration-200" alt="">
+        <button type="button" data-blmkc-image-prev class="absolute left-3 z-10 grid size-10 place-items-center rounded-full bg-black/60 text-white shadow-lg transition hover:bg-orange-500 sm:left-5" aria-label="Foto sebelumnya"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" data-blmkc-image-next class="absolute right-3 z-10 grid size-10 place-items-center rounded-full bg-black/60 text-white shadow-lg transition hover:bg-orange-500 sm:right-5" aria-label="Foto berikutnya"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center overflow-hidden rounded-xl border border-white/15 bg-black/70 text-white shadow-xl backdrop-blur-sm sm:bottom-5">
+          <button type="button" data-blmkc-zoom-out class="grid size-10 place-items-center transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Perkecil foto"><i class="fa-solid fa-minus"></i></button>
+          <button type="button" data-blmkc-zoom-reset class="h-10 min-w-16 border-x border-white/15 px-3 text-xs font-bold transition hover:bg-white/15" aria-label="Kembalikan ukuran foto">100%</button>
+          <button type="button" data-blmkc-zoom-in class="grid size-10 place-items-center transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Perbesar foto"><i class="fa-solid fa-plus"></i></button>
+        </div>
+      </div>
+      <footer class="relative z-20 shrink-0 border-t border-orange-200 bg-orange-50 px-4 py-3 sm:px-5">
+        <p data-blmkc-image-caption class="text-xs font-medium leading-5 text-orange-950"></p>
+      </footer>
+    </div>
+  `;
+  document.body.append(lightbox);
+
+  const panel = lightbox.querySelector("[data-blmkc-image-panel]");
+  const fullImage = lightbox.querySelector("[data-blmkc-image-full]");
+  const loading = lightbox.querySelector("[data-blmkc-image-loading]");
+  const count = lightbox.querySelector("[data-blmkc-image-count]");
+  const caption = lightbox.querySelector("[data-blmkc-image-caption]");
+  const closeButton = lightbox.querySelector("[data-blmkc-image-close]");
+  const previousButton = lightbox.querySelector("[data-blmkc-image-prev]");
+  const nextButton = lightbox.querySelector("[data-blmkc-image-next]");
+  const zoomOutButton = lightbox.querySelector("[data-blmkc-zoom-out]");
+  const zoomResetButton = lightbox.querySelector("[data-blmkc-zoom-reset]");
+  const zoomInButton = lightbox.querySelector("[data-blmkc-zoom-in]");
+  let trigger = null;
+  let activeIndex = 0;
+  let zoomLevel = 1;
+  let panX = 0;
+  let panY = 0;
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+
+  const renderImageTransform = () => {
+    fullImage.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoomLevel})`;
+    fullImage.style.cursor = zoomLevel > 1 ? (dragging ? "grabbing" : "grab") : "zoom-in";
+  };
+
+  const setZoom = (level) => {
+    zoomLevel = Math.min(3, Math.max(0.5, level));
+    if (zoomLevel <= 1) {
+      panX = 0;
+      panY = 0;
+    }
+    renderImageTransform();
+    zoomResetButton.textContent = `${Math.round(zoomLevel * 100)}%`;
+    zoomOutButton.disabled = zoomLevel <= 0.5;
+    zoomInButton.disabled = zoomLevel >= 3;
+  };
+
+  const showImage = (index) => {
+    activeIndex = (index + blmkcImagePreviewLinks.length) % blmkcImagePreviewLinks.length;
+    const link = blmkcImagePreviewLinks[activeIndex];
+    const thumbnail = link.querySelector("img");
+    const description = link.closest("article")?.querySelector("p")?.textContent?.trim();
+    const alt = thumbnail?.alt?.trim() || "Foto bukti BLMKC";
+    loading.innerHTML = '<span class="text-center"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i><small class="mt-3 block text-xs text-slate-300">Memuat foto...</small></span>';
+    loading.classList.remove("hidden");
+    fullImage.classList.add("hidden");
+    setZoom(1);
+    fullImage.alt = alt;
+    fullImage.src = link.href;
+    caption.textContent = description || alt;
+    count.textContent = `Foto ${activeIndex + 1} dari ${blmkcImagePreviewLinks.length}`;
+    const hasMultipleImages = blmkcImagePreviewLinks.length > 1;
+    previousButton.classList.toggle("hidden", !hasMultipleImages);
+    nextButton.classList.toggle("hidden", !hasMultipleImages);
+  };
+
+  const closeLightbox = () => {
+    lightbox.classList.add("hidden");
+    lightbox.classList.remove("flex");
+    document.body.classList.remove("overflow-hidden");
+    fullImage.removeAttribute("src");
+    trigger?.focus();
+  };
+
+  blmkcImagePreviewLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      trigger = link;
+      showImage(blmkcImagePreviewLinks.indexOf(link));
+      lightbox.classList.remove("hidden");
+      lightbox.classList.add("flex");
+      document.body.classList.add("overflow-hidden");
+      closeButton.focus();
+    });
+  });
+
+  fullImage.addEventListener("load", () => {
+    loading.classList.add("hidden");
+    fullImage.classList.remove("hidden");
+  });
+  fullImage.addEventListener("error", () => {
+    fullImage.classList.add("hidden");
+    loading.innerHTML = '<span class="text-center text-red-300"><i class="fa-solid fa-circle-exclamation text-3xl"></i><small class="mt-3 block text-xs">Foto tidak dapat dimuat.</small></span>';
+  });
+  previousButton.addEventListener("click", () => showImage(activeIndex - 1));
+  nextButton.addEventListener("click", () => showImage(activeIndex + 1));
+  zoomOutButton.addEventListener("click", () => setZoom(zoomLevel - 0.25));
+  zoomResetButton.addEventListener("click", () => setZoom(1));
+  zoomInButton.addEventListener("click", () => setZoom(zoomLevel + 0.25));
+  fullImage.addEventListener("dblclick", () => setZoom(zoomLevel > 1 ? 1 : 2));
+  fullImage.addEventListener("pointerdown", (event) => {
+    if (zoomLevel <= 1) return;
+    event.preventDefault();
+    dragging = true;
+    dragStartX = event.clientX - panX;
+    dragStartY = event.clientY - panY;
+    fullImage.setPointerCapture(event.pointerId);
+    fullImage.classList.remove("transition-transform");
+    renderImageTransform();
+  });
+  fullImage.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    panX = event.clientX - dragStartX;
+    panY = event.clientY - dragStartY;
+    renderImageTransform();
+  });
+  const stopImageDrag = (event) => {
+    if (!dragging) return;
+    dragging = false;
+    if (fullImage.hasPointerCapture(event.pointerId)) fullImage.releasePointerCapture(event.pointerId);
+    fullImage.classList.add("transition-transform");
+    renderImageTransform();
+  };
+  fullImage.addEventListener("pointerup", stopImageDrag);
+  fullImage.addEventListener("pointercancel", stopImageDrag);
+  closeButton.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (event) => {
+    if (!panel.contains(event.target)) closeLightbox();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (lightbox.classList.contains("hidden")) return;
+    if (event.key === "Escape") closeLightbox();
+    if (event.key === "ArrowLeft") showImage(activeIndex - 1);
+    if (event.key === "ArrowRight") showImage(activeIndex + 1);
+    if (event.key === "+" || event.key === "=") setZoom(zoomLevel + 0.25);
+    if (event.key === "-" || event.key === "_") setZoom(zoomLevel - 0.25);
+    if (event.key === "0") setZoom(1);
+  });
+}
