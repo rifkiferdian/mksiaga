@@ -37,6 +37,8 @@ var definitions = []definition{
 	{group: "Menu utama", key: "dashboard", label: "Dashboard", url: "/"},
 	{group: "Laporan", key: "daily-reports", label: "Laporan Harian CCTV", url: "/reports/daily", permission: "daily-reports.view"},
 	{group: "Laporan", key: "security-reports", label: "Laporan Shift Security", url: "/reports/security", permission: "security-shift-reports.view"},
+	{group: "Laporan", key: "security-history", label: "Riwayat Laporan Shift", url: "/reports/security/history", permission: "security-shift-reports.view"},
+	{group: "Laporan", key: "security-monitoring", label: "Monitoring SPV", url: "/reports/security/monitoring", permission: "security-shift-reports.review"},
 	{group: "Laporan", key: "daily-recap", label: "Rekap Laporan CCTV", url: "/reports/recap", permission: "daily-reports.view"},
 	{group: "Keamanan", parent: "blmkc", key: "blmkc-dashboard", label: "Dashboard", url: "/blmkc", permission: "blmkc.view"},
 	{group: "Keamanan", parent: "blmkc", key: "blmkc-cases", label: "Daftar Kasus", url: "/blmkc/cases", permission: "blmkc.view"},

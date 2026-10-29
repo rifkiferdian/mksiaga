@@ -658,6 +658,23 @@ document.querySelectorAll("[data-signature-pad]").forEach((canvas) => {
   });
 });
 
+document.querySelectorAll("form[data-signature-form]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    const action = event.submitter?.value || "";
+    const needsSignature = !["reject", "revision"].includes(action);
+    const canvas = form.querySelector("[data-signature-pad]");
+    const hidden = form.querySelector("[data-signature-value]");
+    if (canvas && hidden) {
+      hidden.value = canvas.dataset.signed === "true" ? canvas.toDataURL("image/png") : "";
+    }
+    if (needsSignature && canvas?.dataset.signed !== "true") {
+      event.preventDefault();
+      showDashboardToast("Tanda tangan wajib diisi sebelum melanjutkan.");
+      canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+});
+
 document.getElementById("form-laporan")?.addEventListener("submit", (event) => {
   const pads = [...document.querySelectorAll("[data-signature-pad]")];
   pads.forEach((canvas) => {
