@@ -27,7 +27,7 @@ type Member struct {
 }
 
 type HourlyLog struct {
-	ID, CreatedByID                                   uint64
+	ID, ReportID, CreatedByID                         uint64
 	ReportedAt, Level, AreaName, LocationNotes        string
 	Description, ActionTaken, FollowUpStatus, Creator string
 	AreaID                                            uint64
@@ -65,9 +65,15 @@ type HistoryData struct {
 	Shifts, Users []Option
 }
 type MonitoringData struct {
-	ActiveShifts, MissingReports, LateReports, UrgentOpen, WaitingReceiver, WaitingSPV int
-	Active                                                                             []ListItem
-	Urgent                                                                             []HourlyLog
+	ActiveShifts, MissingReports, LateReports, UrgentOpen, WaspadaOpen int
+	WaitingReceiver, WaitingSPV, RevisionReports                       int
+	Active, Late, Waiting, Revisions                                   []ListItem
+	Missing                                                            []MissingShift
+	Urgent, Waspada                                                    []HourlyLog
+}
+
+type MissingShift struct {
+	StoreName, ShiftName, StartTime string
 }
 
 type PageData struct {

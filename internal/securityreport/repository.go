@@ -57,38 +57,74 @@ func (r *Repository) History(ctx context.Context, storeID uint64, f HistoryFilte
 
 func (r *Repository) Monitoring(ctx context.Context) (MonitoringData, error) {
 	var d MonitoringData
-	err := r.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(r.status='active'),0),COALESCE(SUM(r.status='active' AND ((SELECT MAX(l.reported_at) FROM security_shift_hourly_logs l WHERE l.report_id=r.id) IS NULL OR (SELECT MAX(l.reported_at) FROM security_shift_hourly_logs l WHERE l.report_id=r.id)<CURRENT_TIMESTAMP-INTERVAL 60 MINUTE)),0),COALESCE(SUM(r.status='waiting_handover'),0),COALESCE(SUM(r.status='waiting_supervisor'),0) FROM security_shift_reports r WHERE `+storescope.Clause(ctx, "r.store_id")).Scan(&d.ActiveShifts, &d.LateReports, &d.WaitingReceiver, &d.WaitingSPV)
+	err := r.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(r.status='active'),0),COALESCE(SUM(r.status='active' AND COALESCE((SELECT MAX(l.reported_at) FROM security_shift_hourly_logs l WHERE l.report_id=r.id),r.work_started_at)<CURRENT_TIMESTAMP-INTERVAL 60 MINUTE),0),COALESCE(SUM(r.status='waiting_handover'),0),COALESCE(SUM(r.status='waiting_supervisor'),0),COALESCE(SUM(r.status='revision'),0) FROM security_shift_reports r WHERE `+storescope.Clause(ctx, "r.store_id")).Scan(&d.ActiveShifts, &d.LateReports, &d.WaitingReceiver, &d.WaitingSPV, &d.RevisionReports)
 	if err != nil {
 		return d, err
 	}
-	err = r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM security_shift_hourly_logs l JOIN security_shift_reports r ON r.id=l.report_id WHERE l.level='urgent' AND l.follow_up_status IN ('monitoring','in_progress','forwarded') AND `+storescope.Clause(ctx, "r.store_id")).Scan(&d.UrgentOpen)
+	err = r.db.QueryRowContext(ctx, `SELECT COALESCE(SUM(l.level='urgent'),0),COALESCE(SUM(l.level='waspada'),0) FROM security_shift_hourly_logs l JOIN security_shift_reports r ON r.id=l.report_id WHERE l.follow_up_status IN ('monitoring','in_progress','forwarded') AND l.level IN ('urgent','waspada') AND `+storescope.Clause(ctx, "r.store_id")).Scan(&d.UrgentOpen, &d.WaspadaOpen)
 	if err != nil {
 		return d, err
 	}
-	err = r.db.QueryRowContext(ctx, `SELECT GREATEST((SELECT COUNT(*) FROM master_shift WHERE status='active')-(SELECT COUNT(*) FROM security_shift_reports r WHERE r.report_date=CURRENT_DATE AND `+storescope.Clause(ctx, "r.store_id")+`),0)`).Scan(&d.MissingReports)
+	rows, err := r.db.QueryContext(ctx, `SELECT s.name,sh.name,TIME_FORMAT(sh.start_time,'%H:%i') FROM stores s CROSS JOIN master_shift sh WHERE s.status='active' AND s.deleted_at IS NULL AND sh.status='active' AND sh.start_time IS NOT NULL AND sh.start_time<=CURRENT_TIME AND `+storescope.Clause(ctx, "s.id")+` AND NOT EXISTS(SELECT 1 FROM security_shift_reports r WHERE r.store_id=s.id AND r.shift_id=sh.id AND r.report_date=CURRENT_DATE) ORDER BY sh.start_time,s.name`)
 	if err != nil {
 		return d, err
 	}
+	for rows.Next() {
+		var v MissingShift
+		if err = rows.Scan(&v.StoreName, &v.ShiftName, &v.StartTime); err != nil {
+			rows.Close()
+			return d, err
+		}
+		d.Missing = append(d.Missing, v)
+	}
+	if err = rows.Close(); err != nil {
+		return d, err
+	}
+	d.MissingReports = len(d.Missing)
 	all, err := r.reports(ctx)
 	if err != nil {
 		return d, err
 	}
 	for _, v := range all {
-		if v.Status == "active" {
+		switch v.Status {
+		case "active":
 			d.Active = append(d.Active, v)
+		case "waiting_handover", "waiting_supervisor":
+			d.Waiting = append(d.Waiting, v)
+		case "revision":
+			d.Revisions = append(d.Revisions, v)
 		}
 	}
-	rows, err := r.db.QueryContext(ctx, `SELECT l.id,l.created_by_user_id,COALESCE(l.area_id,0),DATE_FORMAT(l.reported_at,'%d-%m-%Y %H:%i'),l.level,COALESCE(a.name,''),COALESCE(l.location_notes,''),l.description,COALESCE(l.action_taken,''),l.follow_up_status,u.name FROM security_shift_hourly_logs l JOIN security_shift_reports r ON r.id=l.report_id LEFT JOIN master_area a ON a.id=l.area_id JOIN users u ON u.id=l.created_by_user_id WHERE l.level='urgent' AND l.follow_up_status IN ('monitoring','in_progress','forwarded') AND `+storescope.Clause(ctx, "r.store_id")+` ORDER BY l.reported_at DESC LIMIT 20`)
+	rows, err = r.db.QueryContext(ctx, `SELECT r.id,r.representative_user_id,DATE_FORMAT(r.report_date,'%d-%m-%Y'),s.name,sh.name,u.name,r.status,DATE_FORMAT(r.work_started_at,'%d-%m-%Y %H:%i'),'',(SELECT COUNT(*) FROM security_shift_report_members m WHERE m.report_id=r.id),(SELECT COUNT(*) FROM security_shift_hourly_logs l WHERE l.report_id=r.id),COALESCE((SELECT CASE MAX(FIELD(x.level,'normal','waspada','urgent')) WHEN 3 THEN 'urgent' WHEN 2 THEN 'waspada' WHEN 1 THEN 'normal' END FROM security_shift_hourly_logs x WHERE x.report_id=r.id),'') FROM security_shift_reports r JOIN stores s ON s.id=r.store_id JOIN master_shift sh ON sh.id=r.shift_id JOIN users u ON u.id=r.representative_user_id WHERE r.status='active' AND COALESCE((SELECT MAX(l.reported_at) FROM security_shift_hourly_logs l WHERE l.report_id=r.id),r.work_started_at)<CURRENT_TIMESTAMP-INTERVAL 60 MINUTE AND `+storescope.Clause(ctx, "r.store_id")+` ORDER BY r.work_started_at`)
+	if err != nil {
+		return d, err
+	}
+	for rows.Next() {
+		var v ListItem
+		if err = rows.Scan(&v.ID, &v.RepresentativeID, &v.ReportDate, &v.StoreName, &v.ShiftName, &v.RepresentativeName, &v.Status, &v.WorkStartedAt, &v.WorkEndedAt, &v.MemberCount, &v.LogCount, &v.HighestLevel); err != nil {
+			rows.Close()
+			return d, err
+		}
+		d.Late = append(d.Late, v)
+	}
+	if err = rows.Close(); err != nil {
+		return d, err
+	}
+	rows, err = r.db.QueryContext(ctx, `SELECT l.id,r.id,l.created_by_user_id,COALESCE(l.area_id,0),DATE_FORMAT(l.reported_at,'%d-%m-%Y %H:%i'),l.level,COALESCE(a.name,''),COALESCE(l.location_notes,''),l.description,COALESCE(l.action_taken,''),l.follow_up_status,u.name FROM security_shift_hourly_logs l JOIN security_shift_reports r ON r.id=l.report_id LEFT JOIN master_area a ON a.id=l.area_id JOIN users u ON u.id=l.created_by_user_id WHERE l.level IN ('urgent','waspada') AND l.follow_up_status IN ('monitoring','in_progress','forwarded') AND `+storescope.Clause(ctx, "r.store_id")+` ORDER BY FIELD(l.level,'urgent','waspada'),l.reported_at DESC LIMIT 30`)
 	if err != nil {
 		return d, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var v HourlyLog
-		if err = rows.Scan(&v.ID, &v.CreatedByID, &v.AreaID, &v.ReportedAt, &v.Level, &v.AreaName, &v.LocationNotes, &v.Description, &v.ActionTaken, &v.FollowUpStatus, &v.Creator); err != nil {
+		if err = rows.Scan(&v.ID, &v.ReportID, &v.CreatedByID, &v.AreaID, &v.ReportedAt, &v.Level, &v.AreaName, &v.LocationNotes, &v.Description, &v.ActionTaken, &v.FollowUpStatus, &v.Creator); err != nil {
 			return d, err
 		}
-		d.Urgent = append(d.Urgent, v)
+		if v.Level == "urgent" {
+			d.Urgent = append(d.Urgent, v)
+		} else {
+			d.Waspada = append(d.Waspada, v)
+		}
 	}
 	return d, rows.Err()
 }
